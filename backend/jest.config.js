@@ -1,6 +1,6 @@
 "use strict";
 /**
- * jest.config.js — Stellar IndigoPay backend
+ * jest.config.js — Stellar-IndigoPay backend
  *
  * Notes:
  *   - testRunner is jest-circus (matches the prior config).

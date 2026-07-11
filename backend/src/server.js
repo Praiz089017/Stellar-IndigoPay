@@ -1,5 +1,5 @@
 /**
- * src/server.js — Stellar IndigoPay API
+ * src/server.js — Stellar-IndigoPay API
  *
  * Bootstrap order (matters):
  *   1. Env validation + dotenv

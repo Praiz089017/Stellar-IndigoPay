@@ -2,7 +2,7 @@
  * src/routes/verification.js — Project verification requests
  *
  * Climate organisations use the /apply form on the frontend to ask the
- * IndigoPay admin team to verify a project. This router accepts the
+ * Stellar-IndigoPay admin team to verify a project. This router accepts the
  * submission, persists it to the `verification_requests` table, and
  * fires an admin notification email through services/email.js.
  *

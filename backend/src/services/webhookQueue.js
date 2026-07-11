@@ -33,7 +33,7 @@ const { computeEventId, sign, DEFAULT_REPLAY_WINDOW_SECONDS } = require("../lib/
 const QUEUE = "webhook-deliveries";
 const RETRY_DELAYS_SECONDS = [30, 120, 600, 1800, 7200, 21600]; // 6 attempts
 const TIMEOUT_MS = 10_000;
-const USER_AGENT = "IndigoPay-Webhook/1.0";
+const USER_AGENT = "Stellar-IndigoPay-Webhook/1.0";
 
 let boss = null;
 
