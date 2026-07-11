@@ -188,27 +188,31 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         <title>Stellar IndigoPay — Fund the planet. One XLM at a time.</title>
         <meta name="description" content="Stellar IndigoPay connects donors with verified climate projects worldwide. Donations go directly on-chain — no banks, no delays, no fees swallowed by middlemen." />
       </Head>
-      {/* Background leaf gradient */}
-      <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-white to-transparent pointer-events-none" />
+      {/* Background gradient */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-[rgba(79,70,229,0.03)] via-[rgba(124,58,237,0.02)] to-transparent dark:from-[rgba(129,140,248,0.05)] dark:via-[rgba(139,92,246,0.03)]" />
+        <div className="absolute top-1/4 -right-32 w-96 h-96 rounded-full bg-[rgba(79,70,229,0.04)] dark:bg-[rgba(129,140,248,0.06)] blur-3xl" />
+        <div className="absolute top-1/3 -left-32 w-80 h-80 rounded-full bg-[rgba(245,158,11,0.03)] dark:bg-[rgba(251,191,36,0.04)] blur-3xl" />
+      </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         {/* ── Hero ────────────────────────────────────────────────────── */}
         <div className="text-center pt-20 pb-16 animate-fade-in relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-forest-200 bg-forest-50 text-forest-700 text-xs font-semibold mb-8 font-body">
-            <span className="w-1.5 h-1.5 rounded-full bg-forest-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[rgba(99,102,241,0.15)] bg-[rgba(99,102,241,0.06)] dark:bg-[rgba(129,140,248,0.08)] text-[#4F46E5] dark:text-[#818CF8] text-xs font-semibold mb-8 font-body shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] dark:bg-[#818CF8] animate-pulse" />
             Open Source · Built on Stellar · Powered by Soroban
           </div>
 
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-forest-900 leading-tight mb-6">
+          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-[#0F172A] dark:text-[#E2E8F0] leading-tight mb-6 tracking-tight">
             Fund the planet.
             <br />
-            <span className="text-gradient-green italic">
+            <span className="text-gradient italic">
               One XLM at a time.
             </span>
           </h1>
 
-          <p className="text-[#5a7a5a] dark:text-[#8aaa8a] text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-body">
-            Stellar IndigoPay connects donors with verified climate projects
+          <p className="text-[#475569] dark:text-[#94A3B8] text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-body">
+            Stellar-IndigoPay connects donors with verified climate projects
             worldwide. Donations go directly on-chain — no banks, no delays, no
             fees swallowed by middlemen.
           </p>
@@ -218,9 +222,12 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
               <>
                 <Link
                   href="/projects"
-                  className="btn-primary text-base px-8 py-3.5"
+                  className="btn-primary text-base px-8 py-3.5 gap-2"
                 >
-                  🌍 Browse Projects
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  Browse Projects
                 </Link>
                 <Link
                   href="/dashboard"
@@ -233,9 +240,12 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
               <>
                 <button
                   onClick={() => setShowConnect(true)}
-                  className="btn-primary text-base px-8 py-3.5"
+                  className="btn-primary text-base px-8 py-3.5 gap-2"
                 >
-                  🌱 Start Donating
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  Start Donating
                 </button>
                 <Link
                   href="/projects"
@@ -249,7 +259,7 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         </div>
 
         {/* ── Stats ───────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-forest-200 rounded-2xl overflow-hidden border border-forest-200 mb-20 shadow-sm">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[rgba(99,102,241,0.10)] dark:bg-[rgba(129,140,248,0.12)] rounded-2xl overflow-hidden border border-[rgba(99,102,241,0.10)] dark:border-[rgba(129,140,248,0.12)] mb-20 shadow-indigo">
           {buildHeroStats(globalStats).map((s) => (
             <StatItem key={s.label} stat={s} />
           ))}
@@ -266,10 +276,10 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         {/* ── Features ────────────────────────────────────────────────── */}
         <div className="mb-20">
           <div className="text-center mb-12">
-            <h2 className="font-display text-3xl sm:text-4xl font-bold text-forest-900 mb-3">
-              Why IndigoPay?
+            <h2 className="font-display text-3xl sm:text-4xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-3">
+              Why <span className="text-gradient">IndigoPay?</span>
             </h2>
-            <p className="text-[#3d5a3d] max-w-xl mx-auto font-body">
+            <p className="text-[#475569] dark:text-[#94A3B8] max-w-xl mx-auto font-body">
               Blockchain-powered climate finance that actually reaches the
               projects that need it.
             </p>
@@ -278,13 +288,15 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="card hover:shadow-green transition-all"
+                className="card hover:shadow-indigo transition-all group"
               >
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="font-display font-semibold text-forest-900 mb-2 text-base">
+                <div className="w-12 h-12 rounded-xl bg-[rgba(79,70,229,0.08)] dark:bg-[rgba(129,140,248,0.10)] flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+                  {f.icon}
+                </div>
+                <h3 className="font-display font-semibold text-[#0F172A] dark:text-[#E2E8F0] mb-2 text-base">
                   {f.title}
                 </h3>
-                <p className="text-[#5a7a5a] dark:text-[#8aaa8a] text-sm leading-relaxed font-body">
+                <p className="text-[#475569] dark:text-[#94A3B8] text-sm leading-relaxed font-body">
                   {f.desc}
                 </p>
               </div>
@@ -295,10 +307,10 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         {/* ── Categories ──────────────────────────────────────────────── */}
         <div className="mb-20">
           <div className="text-center mb-10">
-            <h2 className="font-display text-3xl font-bold text-forest-900 mb-3">
-              Explore by Category
+            <h2 className="font-display text-3xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-3">
+              Explore by <span className="text-gradient">Category</span>
             </h2>
-            <p className="text-[#3d5a3d] max-w-xl mx-auto font-body mb-8">
+            <p className="text-[#475569] dark:text-[#94A3B8] max-w-xl mx-auto font-body mb-8">
               Browse active climate projects across different impact areas
             </p>
           </div>
@@ -313,10 +325,10 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
               <Link
                 key={cat.label}
                 href={`/projects?category=${encodeURIComponent(cat.label)}`}
-                className="card text-center hover:shadow-green hover:border-forest-300 transition-all group py-5"
+                className="card text-center hover:shadow-indigo hover:border-[rgba(99,102,241,0.25)] dark:hover:border-[rgba(129,140,248,0.30)] transition-all group py-5"
               >
-                <div className="text-3xl mb-2">{cat.icon}</div>
-                <p className="text-xs font-semibold text-forest-800 group-hover:text-forest-600 font-body">
+                <div className="text-3xl mb-2 transition-transform group-hover:scale-110">{cat.icon}</div>
+                <p className="text-xs font-semibold text-[#475569] dark:text-[#94A3B8] group-hover:text-[#4F46E5] dark:group-hover:text-[#818CF8] transition-colors font-body">
                   {cat.label}
                 </p>
               </Link>
@@ -325,11 +337,11 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         </div>
 
         {/* ── Badge system callout ─────────────────────────────────────── */}
-        <div className="card mb-20 bg-gradient-to-br from-forest-50 to-white border-forest-200 text-center py-12">
-          <h2 className="font-display text-3xl font-bold text-forest-900 mb-4">
-            Earn Impact Badges
+        <div className="card card-gradient text-center py-12 mb-20">
+          <h2 className="font-display text-3xl font-bold text-white mb-4">
+            Earn Impact Badges 🌟
           </h2>
-          <p className="text-[#5a7a5a] dark:text-[#8aaa8a] max-w-xl mx-auto mb-8 font-body">
+          <p className="text-white/80 max-w-xl mx-auto mb-8 font-body">
             As you donate more, you unlock on-chain badges recorded on the
             Stellar blockchain. Show your commitment to the planet.
           </p>
@@ -340,12 +352,12 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
               { emoji: "🌲", name: "Forest", threshold: "500+ XLM" },
               { emoji: "🌍", name: "Earth Guardian", threshold: "2,000+ XLM" },
             ].map((b) => (
-              <div key={b.name} className="text-center">
+              <div key={b.name} className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20 text-center min-w-[130px]">
                 <div className="text-4xl mb-2">{b.emoji}</div>
-                <p className="font-display font-semibold text-forest-900 text-sm">
+                <p className="font-display font-semibold text-white text-sm">
                   {b.name}
                 </p>
-                <p className="text-xs text-[#5a7a5a] dark:text-[#8aaa8a] font-body">
+                <p className="text-xs text-white/60 font-body mt-1">
                   {b.threshold}
                 </p>
               </div>
@@ -354,14 +366,14 @@ export default function Home({ publicKey, onConnect }: HomeProps) {
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────── */}
-        <div className="text-center pb-12 border-t border-forest-100 pt-8">
-          <p className="text-[#4a6a4a] text-sm font-body">
+        <div className="text-center pb-12 border-t border-[rgba(99,102,241,0.08)] dark:border-[rgba(129,140,248,0.08)] pt-8">
+          <p className="text-[#64748B] dark:text-[#94A3B8] text-sm font-body">
             Open source · MIT License ·{" "}
             <a
-              href="https://github.com/your-org/stellar-indigopay"
+              href="https://github.com/Stellar-IndigoPay/Stellar-IndigoPay"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-forest-600 transition-colors"
+              className="text-[#4F46E5] dark:text-[#818CF8] hover:underline font-medium transition-colors"
             >
               Contribute on GitHub →
             </a>
@@ -405,17 +417,17 @@ function LiveDonationTicker({
   const item = donations[activeIndex];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-forest-800 bg-forest-900/95 backdrop-blur px-4 py-2">
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[rgba(99,102,241,0.20)] dark:border-[rgba(129,140,248,0.20)] bg-[#0F172A]/95 dark:bg-[#0A0A1A]/95 backdrop-blur px-4 py-2.5">
       <div className="max-w-6xl mx-auto flex items-center gap-3 text-sm text-white font-body">
-        <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-forest-300 font-bold">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-[#818CF8] font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50" />
           Live donations
         </span>
-        <p key={item.id} className="animate-slide-up">
+        <p key={item.id} className="animate-fade-in-up">
           just donated <strong>{formatXLM(item.amountXLM)}</strong> to{" "}
           <Link
             href={`/projects/${item.projectId}`}
-            className="text-emerald-300 hover:text-emerald-200"
+            className="text-[#A5B4FC] hover:text-[#818CF8] transition-colors"
           >
             {item.projectName}
           </Link>
@@ -430,7 +442,7 @@ function CategoryStatsChart({ stats }: { stats: CategoryStats[] }) {
 
   return (
     <div className="card p-6 mb-6">
-      <h3 className="font-display text-lg font-semibold text-forest-900 mb-4">
+      <h3 className="font-display text-lg font-semibold text-[#0F172A] dark:text-[#E2E8F0] mb-4">
         Active Projects by Category
       </h3>
       <div className="space-y-3">
@@ -443,22 +455,17 @@ function CategoryStatsChart({ stats }: { stats: CategoryStats[] }) {
               className="block group"
             >
               <div className="flex items-center gap-3 mb-1">
-                <span className="text-xl">
-                  {getCategoryIcon(stat.category)}
-                </span>
-                <span className="font-body text-sm font-medium text-forest-800 group-hover:text-forest-600 transition-colors flex-1">
+                <span className="text-xl">{getCategoryIcon(stat.category)}</span>
+                <span className="font-body text-sm font-medium text-[#0F172A] dark:text-[#E2E8F0] group-hover:text-[#4F46E5] dark:group-hover:text-[#818CF8] transition-colors flex-1">
                   {stat.category}
                 </span>
-                <span className="font-body text-sm font-bold text-forest-700">
+                <span className="font-body text-sm font-bold text-[#4F46E5] dark:text-[#818CF8]">
                   {stat.count}
                 </span>
               </div>
-              <div
-                className="h-2 bg-forest-100 rounded-full overflow-hidden"
-                style={{ width: "100%" }}
-              >
+              <div className="h-2 bg-[rgba(99,102,241,0.08)] dark:bg-[rgba(129,140,248,0.10)] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-forest-500 to-forest-600 rounded-full transition-all duration-500 ease-out group-hover:from-forest-600 group-hover:to-forest-700"
+                  className="h-full bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] rounded-full transition-all duration-500 ease-out group-hover:from-[#6366F1] group-hover:to-[#8B5CF6]"
                   style={{ width: `${percentage}%` }}
                 />
               </div>
@@ -475,48 +482,48 @@ function FeaturedProjectCard({ project }: { project: ClimateProject }) {
   return (
     <div className="mb-20">
       <div className="text-center mb-8">
-        <h2 className="font-display text-3xl font-bold text-forest-900 mb-2">
+        <h2 className="font-display text-3xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-2">
           ⭐ Featured Project
         </h2>
-        <p className="text-[#3d5a3d] font-body">
+        <p className="text-[#475569] dark:text-[#94A3B8] font-body">
           The project making the biggest impact right now
         </p>
       </div>
-      <div className="card border-forest-200 shadow-lg hover:shadow-green transition-all p-6 sm:p-8">
+      <div className="card border-[rgba(99,102,241,0.15)] dark:border-[rgba(129,140,248,0.18)] shadow-indigo hover:shadow-indigo transition-all p-6 sm:p-8">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-3 py-1 rounded-full border border-amber-200 font-body">
+              <span className="text-xs font-semibold bg-[rgba(245,158,11,0.10)] text-[#D97706] dark:text-[#FBBF24] px-3 py-1 rounded-full border border-[rgba(245,158,11,0.20)] font-body">
                 🏆 Most Donors
               </span>
-              <span className="text-xs text-[#4a6a4a] bg-forest-50 px-2.5 py-1 rounded-full border border-forest-100 font-body">
+              <span className="text-xs text-[#475569] dark:text-[#94A3B8] bg-[rgba(99,102,241,0.06)] dark:bg-[rgba(129,140,248,0.08)] px-2.5 py-1 rounded-full border border-[rgba(99,102,241,0.10)] font-body">
                 {project.category}
               </span>
             </div>
-            <h3 className="font-display text-2xl font-bold text-forest-900 mb-2">
+            <h3 className="font-display text-2xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-2">
               {project.name}
             </h3>
-            <p className="text-[#5a7a5a] dark:text-[#8aaa8a] text-sm leading-relaxed font-body mb-4 line-clamp-3">
+            <p className="text-[#475569] dark:text-[#94A3B8] text-sm leading-relaxed font-body mb-4 line-clamp-3">
               {project.description}
             </p>
             <div className="flex flex-wrap gap-4 text-sm mb-5">
-              <span className="flex items-center gap-1 text-forest-700 font-body">
+              <span className="flex items-center gap-1 text-[#4F46E5] dark:text-[#818CF8] font-body">
                 👥 <strong>{project.donorCount.toLocaleString()}</strong> donors
               </span>
-              <span className="flex items-center gap-1 text-forest-700 font-body">
+              <span className="flex items-center gap-1 text-[#4F46E5] dark:text-[#818CF8] font-body">
                 ♻️ <strong>{formatCO2(project.co2OffsetKg)}</strong> offset
               </span>
-              <span className="flex items-center gap-1 text-[#5a7a5a] dark:text-[#8aaa8a] font-body">
+              <span className="flex items-center gap-1 text-[#64748B] dark:text-[#94A3B8] font-body">
                 📍 {project.location}
               </span>
             </div>
             {/* Progress bar */}
             <div className="mb-2">
               <div className="flex justify-between text-xs mb-1 font-body">
-                <span className="font-semibold text-forest-700">
+                <span className="font-semibold text-[#4F46E5] dark:text-[#818CF8]">
                   {formatXLM(project.raisedXLM)} raised
                 </span>
-                <span className="text-[#5a7a5a] dark:text-[#8aaa8a]">
+                <span className="text-[#64748B] dark:text-[#94A3B8]">
                   {pct}% of {formatXLM(project.goalXLM)}
                 </span>
               </div>
@@ -537,7 +544,7 @@ function FeaturedProjectCard({ project }: { project: ClimateProject }) {
               href={`/projects/${project.id}`}
               className="btn-primary text-base py-3 px-6 text-center"
             >
-              🌍 Donate Now
+              Donate Now
             </Link>
             <Link
               href={`/projects/${project.id}`}
@@ -557,16 +564,16 @@ function CO2OffsetTicker({ stats }: { stats: GlobalStats }) {
   return (
     <div
       ref={elementRef}
-      className="card mb-20 bg-gradient-to-br from-forest-900 to-forest-700 border-none text-white text-center py-10 shadow-xl"
+      className="card-gradient text-center py-10 mb-20"
     >
       <p className="text-3xl mb-2">🍃</p>
       <div className="font-display text-5xl sm:text-6xl font-bold text-white mb-2">
         {formatCO2(count)}
       </div>
-      <p className="text-forest-200 text-sm font-body uppercase tracking-widest font-bold opacity-80">
+      <p className="text-[#A5B4FC] text-sm font-body uppercase tracking-widest font-bold opacity-90">
         Total CO₂ Offset Across All Donations
       </p>
-      <p className="text-forest-300 text-xs font-body mt-2">
+      <p className="text-[#C7D2FE] text-xs font-body mt-2">
         {stats.totalDonations.toLocaleString()} donations · {stats.totalDonors.toLocaleString()} donors ·{" "}
         {parseFloat(stats.totalXLMRaised).toLocaleString()} XLM raised
       </p>
@@ -577,13 +584,13 @@ function CO2OffsetTicker({ stats }: { stats: GlobalStats }) {
 function StatItem({ stat }: { stat: any }) {
   const { count, elementRef } = useCountUp(stat.value, stat.duration);
   return (
-    <div ref={elementRef} className="bg-white text-center py-10 px-4">
-      <div className="font-display text-4xl font-bold text-gradient-green mb-1">
+    <div ref={elementRef} className="bg-white dark:bg-[#14142D] text-center py-10 px-4">
+      <div className="font-display text-4xl font-bold text-gradient mb-1">
         {stat.prefix}
         {count.toLocaleString()}
         {stat.suffix}
       </div>
-      <div className="text-[#4a6a4a] text-sm font-body uppercase tracking-widest font-bold">
+      <div className="text-[#475569] dark:text-[#94A3B8] text-sm font-body uppercase tracking-widest font-bold">
         {stat.label}
       </div>
     </div>

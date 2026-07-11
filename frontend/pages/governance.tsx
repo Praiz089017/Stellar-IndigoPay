@@ -208,27 +208,27 @@ export default function GovernancePage() {
 
       <main className="max-w-3xl mx-auto px-4 py-12 sm:px-6">
         <div className="mb-10">
-          <h1 className="text-4xl font-display font-bold text-forest-900 tracking-tight">
-            Community <span className="text-forest-500">Governance</span>
+          <h1 className="text-4xl font-display font-bold text-[#0F172A] dark:text-[#E2E8F0] tracking-tight">
+            Community <span className="text-gradient">Governance</span>
           </h1>
-          <p className="mt-3 text-forest-600">
+          <p className="mt-3 text-[#475569] dark:text-[#94A3B8]">
             Badge holders vote to verify new climate projects. You need at least a{" "}
             <span className="font-semibold">Seedling badge</span> (≥ 10 XLM donated) to cast a vote.
           </p>
         </div>
 
         {/* Wallet + badge status */}
-        <div className="mb-8 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div className="card mb-8 rounded-2xl p-5">
           {publicKey ? (
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm text-zinc-500">Connected as</p>
-                <p className="font-mono text-sm font-medium text-zinc-900">{shortenAddress(publicKey)}</p>
+              <p className="text-sm text-[#64748B]">Connected as</p>
+              <p className="font-mono text-sm font-medium text-[#0F172A] dark:text-[#E2E8F0]">{shortenAddress(publicKey)}</p>
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                   isBadgeHolder
-                    ? "bg-forest-100 text-forest-700"
+                    ? "bg-[rgba(99,102,241,0.08)] dark:bg-[rgba(129,140,248,0.10)] text-[#4F46E5] dark:text-[#818CF8]"
                     : "bg-zinc-100 text-zinc-500"
                 }`}
               >
@@ -237,10 +237,10 @@ export default function GovernancePage() {
             </div>
           ) : (
             <div className="flex items-center justify-between gap-4">
-              <p className="text-sm text-zinc-600">Connect your Freighter wallet to vote.</p>
+              <p className="text-sm text-[#64748B]">Connect your Freighter wallet to vote.</p>
               <button
                 onClick={handleConnect}
-                className="rounded-full bg-forest-600 px-4 py-2 text-sm font-semibold text-white hover:bg-forest-700"
+                className="btn-primary rounded-full px-4 py-2 text-sm"
               >
                 Connect wallet
               </button>
@@ -249,23 +249,23 @@ export default function GovernancePage() {
         </div>
 
         {/* Quorum notice */}
-        <div className="mb-6 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+        <div className="mb-6 rounded-xl bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.20)] px-4 py-3 text-sm text-[#B45309] dark:text-[#FBBF24]">
           Quorum threshold: <strong>{QUORUM_THRESHOLD} votes</strong>. A proposal passes when
           votes&nbsp;for &gt; votes&nbsp;against and the deadline passes.
         </div>
 
         {error && (
-          <div className="mb-6 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-xl bg-[rgba(244,63,94,0.06)] border border-[rgba(244,63,94,0.20)] px-4 py-3 text-sm text-[#E11D48]">
             {error}
           </div>
         )}
 
         {isLoading ? (
-          <p className="text-center text-zinc-500 py-16">Loading proposals…</p>
+          <p className="text-center text-[#64748B] dark:text-[#94A3B8] py-16">Loading proposals…</p>
         ) : proposals.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-100 bg-white p-12 text-center shadow-sm">
-            <p className="text-zinc-500">No open proposals at the moment.</p>
-            <p className="mt-1 text-sm text-zinc-400">
+          <div className="card rounded-2xl p-12 text-center">
+            <p className="text-[#64748B] dark:text-[#94A3B8]">No open proposals at the moment.</p>
+            <p className="mt-1 text-sm text-[#94A3B8]">
               Admins create proposals via <code className="text-xs">create_proposal</code> on the contract.
             </p>
           </div>
@@ -282,14 +282,14 @@ export default function GovernancePage() {
               return (
                 <article
                   key={proposal.projectId}
-                  className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                  className="card rounded-2xl p-5"
                 >
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
-                      <h2 className="text-base font-semibold text-zinc-900">
+                      <h2 className="text-base font-semibold text-[#0F172A] dark:text-[#E2E8F0]">
                         {proposal.projectName || proposal.projectId}
                       </h2>
-                      <p className="text-xs text-zinc-500 mt-0.5">
+<p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-0.5">
                         Project ID: <code className="font-mono">{proposal.projectId}</code>
                       </p>
                     </div>
@@ -298,7 +298,7 @@ export default function GovernancePage() {
                         {ledgersToDays(ledgersLeft)} left
                       </span>
                       {quorumMet && (
-                        <span className="rounded-full bg-forest-50 text-forest-700 px-2.5 py-0.5 text-xs font-medium">
+                        <span className="rounded-full bg-[rgba(99,102,241,0.08)] dark:bg-[rgba(129,140,248,0.10)] text-[#4F46E5] dark:text-[#818CF8] px-2.5 py-0.5 text-xs font-medium">
                           Quorum met
                         </span>
                       )}
@@ -307,18 +307,18 @@ export default function GovernancePage() {
 
                   {/* Tally bar */}
                   <div className="mb-4">
-                    <div className="flex justify-between text-xs text-zinc-500 mb-1">
-                      <span>For: <strong className="text-forest-700">{proposal.votesFor}</strong></span>
+                    <div className="flex justify-between text-xs text-[#64748B] dark:text-[#94A3B8] mb-1">
+                      <span>For: <strong className="text-[#4F46E5] dark:text-[#818CF8]">{proposal.votesFor}</strong></span>
                       <span><strong>{votes}</strong> total votes</span>
-                      <span>Against: <strong className="text-red-600">{proposal.votesAgainst}</strong></span>
+                      <span>Against: <strong className="text-[#E11D48]">{proposal.votesAgainst}</strong></span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-[rgba(99,102,241,0.10)] dark:bg-[rgba(129,140,248,0.12)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-forest-500 transition-all"
+                        className="h-full rounded-full bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <p className="text-xs text-zinc-400 mt-1 text-right">{pct}% approval</p>
+                    <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1 text-right">{pct}% approval</p>
                   </div>
 
                   {/* Vote buttons */}
@@ -327,7 +327,7 @@ export default function GovernancePage() {
                       <button
                         disabled={isVoting}
                         onClick={() => castVote(proposal.projectId, true)}
-                        className="flex-1 rounded-xl bg-forest-600 py-2 text-sm font-semibold text-white hover:bg-forest-700 disabled:opacity-50"
+                        className="flex-1 btn-primary py-2 text-sm disabled:opacity-50 rounded-xl"
                       >
                         {isVoting ? "…" : "Approve"}
                       </button>
@@ -342,16 +342,16 @@ export default function GovernancePage() {
                   ) : null}
 
                   {status && (
-                    <p className="mt-3 text-xs text-zinc-500 text-center">{status}</p>
+                    <p className="mt-3 text-xs text-[#64748B] dark:text-[#94A3B8] text-center">{status}</p>
                   )}
 
                   {!publicKey && (
-                    <p className="mt-2 text-xs text-zinc-400 text-center">
+                    <p className="mt-2 text-xs text-[#94A3B8] text-center">
                       Connect wallet to vote.
                     </p>
                   )}
                   {publicKey && !isBadgeHolder && (
-                    <p className="mt-2 text-xs text-zinc-400 text-center">
+                    <p className="mt-2 text-xs text-[#94A3B8] text-center">
                       You need at least a Seedling badge to vote. Donate ≥ 10 XLM to earn one.
                     </p>
                   )}

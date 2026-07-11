@@ -252,11 +252,10 @@ export default function ApplyPage() {
     <div className="max-w-2xl mx-auto px-4 py-10 animate-fade-in">
       <p className="text-xs uppercase tracking-widest text-forest-600 font-bold mb-2 font-body">
         {T("pageTitle")}
-      </p>
-      <h1 className="font-display text-3xl font-bold text-forest-900 mb-2">
-        {T("pageTitle")}
-      </h1>
-      <p className="text-[#5a7a5a] font-body mb-8 text-sm">{T("pageIntro")}</p>
+      </p>        <h1 className="font-display text-3xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-2">
+          {T("pageTitle")}
+        </h1>
+        <p className="text-[#475569] dark:text-[#94A3B8] font-body mb-8 text-sm">{T("pageIntro")}</p>
 
       {/* Step indicator */}
       <div className="flex items-center gap-2 mb-10">
@@ -265,23 +264,23 @@ export default function ApplyPage() {
             <div
               className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
                 i < stepIndex
-                  ? "bg-emerald-600 border-emerald-600 text-white"
+                  ? "bg-gradient-to-r from-[#4F46E5] to-[#7C3AED] border-0 text-white"
                   : i === stepIndex
-                  ? "border-emerald-600 text-emerald-700 bg-white"
-                  : "border-forest-200 text-[#8aaa8a] bg-white"
+                  ? "border-[#4F46E5] dark:border-[#818CF8] text-[#4F46E5] dark:text-[#818CF8] bg-white dark:bg-[#14142D]"
+                  : "border-[rgba(99,102,241,0.15)] dark:border-[rgba(129,140,248,0.20)] text-[#64748B] dark:text-[#94A3B8] bg-white dark:bg-[#14142D]"
               }`}
             >
               {i < stepIndex ? "✓" : i + 1}
             </div>
             <span
               className={`text-xs font-body hidden sm:block ${
-                i === stepIndex ? "text-forest-900 font-semibold" : "text-[#8aaa8a]"
+                i === stepIndex ? "text-[#0F172A] dark:text-[#E2E8F0] font-semibold" : "text-[#64748B] dark:text-[#94A3B8]"
               }`}
             >
               {STEP_LABELS[s]}
             </span>
             {i < progressSteps.length - 1 && (
-              <div className={`flex-1 h-px ${i < stepIndex ? "bg-emerald-400" : "bg-forest-200"}`} />
+              <div className={`flex-1 h-px ${i < stepIndex ? "bg-[#4F46E5] dark:bg-[#818CF8]" : "bg-[rgba(99,102,241,0.10)] dark:bg-[rgba(129,140,248,0.12)]"}`} />
             )}
           </div>
         ))}
@@ -291,7 +290,7 @@ export default function ApplyPage() {
         {/* Step: org */}
         {step === "org" && (
           <>
-            <h2 className="font-display text-xl font-bold text-forest-900">
+            <h2 className="font-display text-xl font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               {T("stepOrg")}
             </h2>
             <Field label={`${T("orgName")} *`} error={fieldErrors.organizationName}>
@@ -349,7 +348,7 @@ export default function ApplyPage() {
         {/* Step: project */}
         {step === "project" && (
           <>
-            <h2 className="font-display text-xl font-bold text-forest-900">
+            <h2 className="font-display text-xl font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               {T("stepProject")}
             </h2>
             <Field label={`${T("projectName")} *`} error={fieldErrors.projectName}>
@@ -395,10 +394,10 @@ export default function ApplyPage() {
         {/* Step: impact */}
         {step === "impact" && (
           <>
-            <h2 className="font-display text-xl font-bold text-forest-900">
+            <h2 className="font-display text-xl font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               {T("stepImpact")}
             </h2>
-            <p className="text-[#5a7a5a] text-sm font-body">
+            <p className="text-[#475569] dark:text-[#94A3B8] text-sm font-body">
               We use these numbers to communicate impact to donors and on-chain.
             </p>
             <Field
@@ -446,11 +445,11 @@ export default function ApplyPage() {
         {/* Step: documents */}
         {step === "documents" && (
           <>
-            <h2 className="font-display text-xl font-bold text-forest-900">
+            <h2 className="font-display text-xl font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               {T("documentsTitle")}
             </h2>
-            <p className="text-[#5a7a5a] text-sm font-body">{T("documentsHint")}</p>
-            <p className="text-xs text-[#8aaa8a] font-body">{T("storageNote")}</p>
+            <p className="text-[#475569] dark:text-[#94A3B8] text-sm font-body">{T("documentsHint")}</p>
+            <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-body">{T("storageNote")}</p>
 
             <div className="rounded-lg border border-dashed border-forest-200 p-4 flex flex-col gap-3 bg-forest-50/40">
               <input
@@ -458,11 +457,11 @@ export default function ApplyPage() {
                 type="file"
                 accept={ACCEPTED_DOC_TYPES}
                 onChange={handleFileSelected}
-                className="block w-full text-sm text-forest-800 file:mr-3 file:rounded-md file:border-0 file:bg-forest-600 file:px-4 file:py-2 file:text-white file:cursor-pointer hover:file:bg-forest-700"
+                className="block w-full text-sm text-[#0F172A] dark:text-[#E2E8F0] file:mr-3 file:rounded-md file:border-0 file:bg-gradient-to-r file:from-[#4F46E5] file:to-[#7C3AED] file:px-4 file:py-2 file:text-white file:cursor-pointer hover:file:opacity-90"
                 aria-label={T("documentsTitle")}
               />
               {uploading && (
-                <p className="text-xs text-forest-700 font-body">{T("uploading")}</p>
+                <p className="text-xs text-[#4F46E5] dark:text-[#818CF8] font-body">{T("uploading")}</p>
               )}
               {uploadError && (
                 <p className="text-xs text-red-500 font-body">{uploadError}</p>
@@ -470,14 +469,14 @@ export default function ApplyPage() {
             </div>
 
             {documents.length === 0 ? (
-              <p className="text-sm text-[#8aaa8a] font-body">{T("noDocuments")}</p>
+              <p className="text-sm text-[#64748B] dark:text-[#94A3B8] font-body">{T("noDocuments")}</p>
             ) : (
               <ul className="divide-y divide-forest-100 rounded-lg border border-forest-100 overflow-hidden">
                 {documents.map((doc, i) => (
-                  <li key={`${doc.url}-${i}`} className="flex items-center gap-3 px-4 py-3 bg-white">
+                  <li key={`${doc.url}-${i}`} className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#14142D]">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-forest-900 truncate font-body">{doc.name}</p>
-                      <p className="text-xs text-[#8aaa8a] font-body truncate">
+                      <p className="text-sm font-medium text-[#0F172A] dark:text-[#E2E8F0] truncate font-body">{doc.name}</p>
+                      <p className="text-xs text-[#64748B] dark:text-[#94A3B8] font-body truncate">
                         {doc.backend} · {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : "—"}
                       </p>
                     </div>
@@ -485,7 +484,7 @@ export default function ApplyPage() {
                       href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-forest-600 hover:underline font-body"
+                      className="text-xs text-[#4F46E5] dark:text-[#818CF8] hover:underline font-body"
                     >
                       ↗
                     </a>
@@ -506,50 +505,50 @@ export default function ApplyPage() {
         {/* Step: review */}
         {step === "review" && (
           <>
-            <h2 className="font-display text-xl font-bold text-forest-900">
+            <h2 className="font-display text-xl font-bold text-[#0F172A] dark:text-[#E2E8F0]">
               {T("stepReview")}
             </h2>
-            <p className="text-sm text-[#5a7a5a] font-body">
+            <p className="text-sm text-[#475569] dark:text-[#94A3B8] font-body">
               Quick scan before submission:
             </p>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm font-body">
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("orgName")}</dt>
-                <dd className="text-forest-900">{form.organizationName || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("orgName")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.organizationName || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("contactEmail")}</dt>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("contactEmail")}</dt>
                 <dd className="text-forest-900 break-all">{form.contactEmail || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("walletAddress")}</dt>
-                <dd className="font-mono text-xs text-forest-900 break-all">{form.walletAddress || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("walletAddress")}</dt>
+                <dd className="font-mono text-xs text-[#0F172A] dark:text-[#E2E8F0] break-all">{form.walletAddress || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("projectName")}</dt>
-                <dd className="text-forest-900">{form.projectName || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("projectName")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.projectName || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("projectCategory")}</dt>
-                <dd className="text-forest-900">{form.projectCategory || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("projectCategory")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.projectCategory || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("projectLocation")}</dt>
-                <dd className="text-forest-900">{form.projectLocation || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("projectLocation")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.projectLocation || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("co2PerXLM")}</dt>
-                <dd className="text-forest-900">{form.co2PerXLM || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("co2PerXLM")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.co2PerXLM || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">{T("annualTonnes")}</dt>
-                <dd className="text-forest-900">{form.expectedAnnualTonnesCO2 || "—"}</dd>
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">{T("annualTonnes")}</dt>
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">{form.expectedAnnualTonnesCO2 || "—"}</dd>
               </div>
               <div className="sm:col-span-2">
-                <dt className="text-xs text-[#8aaa8a] uppercase tracking-wider">
+                <dt className="text-xs text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
                   {T("documentsTitle")}
                 </dt>
-                <dd className="text-forest-900">
+                <dd className="text-[#0F172A] dark:text-[#E2E8F0]">
                   {documents.length
                     ? documents.map((d) => d.name).join(", ")
                     : T("noDocuments")}

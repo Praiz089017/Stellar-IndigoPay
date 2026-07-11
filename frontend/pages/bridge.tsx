@@ -207,10 +207,10 @@ export default function BridgePage() {
       <div className="min-h-screen bg-leaf">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
           <div className="mb-8">
-            <h1 className="font-display text-3xl font-bold text-forest-900 mb-2">
+            <h1 className="font-display text-3xl font-bold text-[#0F172A] dark:text-[#E2E8F0] mb-2">
               Bridge USDC to Stellar
             </h1>
-            <p className="text-[#5a7a5a] dark:text-[#8aaa8a] font-body">
+            <p className="text-[#475569] dark:text-[#94A3B8] font-body">
               Transfer your Ethereum-based USDC to Stellar using Circle&apos;s Cross-Chain Transfer Protocol (CCTP)
             </p>
           </div>
@@ -220,7 +220,7 @@ export default function BridgePage() {
             <h2 className="label mb-4">Select Networks</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-semibold text-forest-900 mb-2 block">Source (Ethereum)</label>
+                <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E2E8F0] mb-2 block">Source (Ethereum)</label>
                 <select
                   value={sourceChain}
                   onChange={(e) => setSourceChain(e.target.value as "ethereum" | "polygon")}
@@ -231,7 +231,7 @@ export default function BridgePage() {
                 </select>
               </div>
               <div>
-                <label className="text-sm font-semibold text-forest-900 mb-2 block">Destination (Stellar)</label>
+                <label className="text-sm font-semibold text-[#0F172A] dark:text-[#E2E8F0] mb-2 block">Destination (Stellar)</label>
                 <select
                   value={destinationChain}
                   onChange={(e) => setDestinationChain(e.target.value as "stellar")}
@@ -249,7 +249,7 @@ export default function BridgePage() {
             {/* Ethereum Wallet */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-semibold text-forest-900">Ethereum Wallet</h3>
+                <h3 className="font-display font-semibold text-[#0F172A] dark:text-[#E2E8F0]">Ethereum Wallet</h3>
                 <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">
                   {sourceChain === "ethereum" ? "ETH" : "MATIC"}
                 </span>
@@ -281,7 +281,7 @@ export default function BridgePage() {
             {/* Stellar Wallet */}
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display font-semibold text-forest-900">Stellar Wallet</h3>
+                <h3 className="font-display font-semibold text-[#0F172A] dark:text-[#E2E8F0]">Stellar Wallet</h3>
                 <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-semibold">
                   XLM
                 </span>
@@ -321,22 +321,22 @@ export default function BridgePage() {
                   key={s.number}
                   className={`flex gap-4 p-4 rounded-xl border-2 transition-all ${
                     step === s.number
-                      ? "border-forest-500 bg-forest-50"
-                      : "border-forest-100 bg-white"
+                    ? "border-[#4F46E5] dark:border-[#818CF8] bg-[rgba(99,102,241,0.04)] dark:bg-[rgba(129,140,248,0.06)]"
+                    : "border-[rgba(99,102,241,0.10)] dark:border-[rgba(129,140,248,0.12)] bg-white dark:bg-[#14142D]"
                   }`}
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
                       step === s.number
-                        ? "bg-forest-500 text-white"
-                        : "bg-forest-100 text-forest-600"
+                    ? "btn-primary text-white"
+                    : "bg-[rgba(99,102,241,0.10)] dark:bg-[rgba(129,140,248,0.12)] text-[#4F46E5] dark:text-[#818CF8]"
                     }`}
                   >
                     {s.number}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-forest-900 mb-1">{s.title}</h3>
-                    <p className="text-sm text-[#5a7a5a] dark:text-[#8aaa8a]">{s.description}</p>
+                    <h3 className="font-semibold text-[#0F172A] dark:text-[#E2E8F0] mb-1">{s.title}</h3>
+                    <p className="text-sm text-[#475569] dark:text-[#94A3B8]">{s.description}</p>
                   </div>
                 </div>
               ))}
@@ -363,7 +363,7 @@ export default function BridgePage() {
           {stellarAddress && projects.length > 0 && (
             <div className="card mb-6">
               <h2 className="label mb-4">🌱 Record as Project Donation</h2>
-              <p className="text-sm text-[#5a7a5a] dark:text-[#8aaa8a] font-body mb-4">
+              <p className="text-sm text-[#475569] dark:text-[#94A3B8] font-body mb-4">
                 After bridging USDC, record it as a donation to a climate project.
               </p>
 
@@ -405,8 +405,7 @@ export default function BridgePage() {
 
                 <button
                   onClick={recordBridgeDonation}
-                  disabled={!selectedProject || !bridgeAmount || recording}
-                  className="w-full py-3 px-4 bg-forest-500 text-white rounded-xl font-semibold hover:bg-forest-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!selectedProject || !bridgeAmount || recording}                    className="btn-primary w-full py-3 px-4"
                 >
                   {recording ? "Recording..." : "🎯 Record Donation"}
                 </button>
@@ -422,18 +421,18 @@ export default function BridgePage() {
                 {bridgeHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between p-3 bg-forest-50 rounded-xl"
+                    className="flex items-center justify-between p-3 bg-[rgba(99,102,241,0.04)] dark:bg-[rgba(129,140,248,0.06)] rounded-xl"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-forest-900">
+                      <p className="text-sm font-semibold text-[#0F172A] dark:text-[#E2E8F0]">
                         {entry.sourceChain} → Stellar
                       </p>
-                      <p className="text-xs text-[#5a7a5a] dark:text-[#8aaa8a]">
+                      <p className="text-xs text-[#475569] dark:text-[#94A3B8]">
                         {new Date(entry.timestamp).toLocaleString()}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-forest-700">
+                      <p className="text-sm font-bold text-[#4F46E5] dark:text-[#818CF8]">
                         ${entry.amount} USDC
                       </p>
                       <span

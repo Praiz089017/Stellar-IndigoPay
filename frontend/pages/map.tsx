@@ -63,14 +63,14 @@ export default function MapPage({ projects, fetchedAt }: MapPageProps) {
       <div className="flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
 
         {/* Top banner ───────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-white border-b border-forest-200 shadow-sm flex-shrink-0">
+        <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-white dark:bg-[#14142D] border-b border-[rgba(99,102,241,0.10)] dark:border-[rgba(129,140,248,0.12)] shadow-sm flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="text-xl" aria-hidden="true">🌍</span>
             <div>
-              <h1 className="font-display font-bold text-forest-900 text-base leading-tight">
+              <h1 className="font-display font-bold text-[#0F172A] dark:text-[#E2E8F0] text-base leading-tight">
                 {t("map.title")}
               </h1>
-              <p className="text-xs text-forest-500 font-body">
+              <p className="text-xs text-[#4F46E5] dark:text-[#818CF8] font-body">
                 {t("map.subtitle").replace("{count}", String(activeCount))}
               </p>
             </div>
@@ -78,15 +78,15 @@ export default function MapPage({ projects, fetchedAt }: MapPageProps) {
 
           <div className="flex items-center gap-2">
             {/* Project count badge */}
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-forest-100 text-forest-700 text-xs font-body font-semibold border border-forest-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-forest-500 animate-pulse" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[rgba(99,102,241,0.08)] dark:bg-[rgba(129,140,248,0.10)] text-[#4F46E5] dark:text-[#818CF8] text-xs font-body font-semibold border border-[rgba(99,102,241,0.15)] dark:border-[rgba(129,140,248,0.20)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
               {activeCount} {t("map.activeProjects")}
             </span>
 
             {/* Link to full project listing */}
             <Link
               href="/projects"
-              className="text-xs font-body font-medium text-forest-600 hover:text-forest-800 hover:underline transition-colors hidden sm:block"
+              className="text-xs font-body font-medium text-[#4F46E5] dark:text-[#818CF8] hover:text-[#3730A3] dark:hover:text-[#A5B4FC] hover:underline transition-colors hidden sm:block"
             >
               {t("map.browseAll")} →
             </Link>
