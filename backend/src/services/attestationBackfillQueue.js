@@ -422,18 +422,10 @@ async function runOnce() {
 }
 
 /**
- * Boot the pg-boss scheduler + the polling worker.
- *
- * Returns:
- *   { alreadyRunning: false }   — fresh start, worker scheduled
- *   { alreadyRunning: true  }   — another start() call already wired
- *                                 up the worker; this call was a no-op.
- *
- * Returning `alreadyRunning: true` is what server.js and tests can
- * watch to detect accidental double-starts (e.g. a hot-reload in dev
- * or a retry on the production boot path). The previous bare
- * `return` hid the bug; this version logs `attestation_backfill_already_running`
- * so a misconfiguration shows up clearly in observability pipelines.
+ * Boot the pg-boss scheduler + the polling worker. Idempotent — a
+ * second call while the first is still active logs a loud warning
+ * rather than no-oping silently so hot-reload / retry loops in
+ * production bootstrap surface misconfigurations.
  */
 async function start() {
   if (boss) {
@@ -441,7 +433,7 @@ async function start() {
       { event: "attestation_backfill_already_running" },
       "start() called while a previous worker is still active; ignoring",
     );
-    return { alreadyRunning: true };
+    return;
   }
 
   if (!isEnabled()) {
@@ -449,7 +441,7 @@ async function start() {
       { event: "attestation_backfill_disabled" },
       "Back-fill worker disabled via env",
     );
-    return { alreadyRunning: false };
+    return;
   }
 
   const contractId =
@@ -459,15 +451,15 @@ async function start() {
       { event: "attestation_backfill_no_contract" },
       "ATTESTATION_CONTRACT_ID unset — back-fill worker idle (set the env var to enable)",
     );
-    return { alreadyRunning: false };
+    return;
   }
 
   // Log the configured relayer identity on boot so a deploy / env
   // drift is visible in the same logs as the first poll. If the
   // `ATTESTATION_RELAYER_ADDRESS` env is missing, the worker still
   // operates — the relayer only affects audit attribution. The next
-  // refactor should add a Soroban get_relayer() comparison at boot so
-  // a divergent env value fails loudly.
+  // refactor should add a Soroban get_relayer() comparison at boot
+  // so a divergent env value fails loudly.
   logger.info(
     {
       event: "attestation_backfill_relayer_configured",
