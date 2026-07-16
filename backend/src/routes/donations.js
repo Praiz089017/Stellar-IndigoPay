@@ -11,6 +11,7 @@ const pool = require("../db/pool");
 const { createRateLimiter } = require("../middleware/rateLimiter");
 const { mapDonationRow } = require("../services/store");
 const { enqueueProfileUpdate } = require("../services/profileQueue");
+const { enqueuePushNotification } = require("../services/pushQueue");
 const { server } = require("../services/stellar");
 const { AppError } = require("../errors");
 const donationLimiter = createRateLimiter(10, 1); // 10 requests per minute
@@ -204,6 +205,22 @@ async function recordDonation(req, res, next) {
       logger.error(
         { event: "profile_update_enqueue_failed", err, donorAddress },
         "Failed to enqueue profile update job",
+      );
+    });
+
+    enqueuePushNotification({
+      type: "donation_receipt",
+      payload: {
+        donorAddress,
+        projectId,
+        donationId: recordedDonation.id,
+        amount: parsedAmount,
+        currency,
+      },
+    }).catch((err) => {
+      logger.error(
+        { event: "push_enqueue_failed", err: err.message, donorAddress, projectId },
+        "Failed to enqueue donation receipt push notification",
       );
     });
 
