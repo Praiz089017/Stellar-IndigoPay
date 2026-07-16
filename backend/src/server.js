@@ -45,6 +45,7 @@ const requestLogger = require("./middleware/requestLogger");
 const requestId = require("./middleware/requestId");
 const queryRouter = require("./middleware/queryRouter");
 const metricsMiddleware = require("./middleware/metrics");
+const { refreshDbPoolMetrics } = require("./services/metrics");
 const {
   createCorsMiddleware,
   getAllowedOrigins,
@@ -511,6 +512,15 @@ async function startServer() {
     } catch {
       // ignore
     }
+  });
+
+  const pool = require("./db/pool");
+  const metricsTimer = setInterval(
+    () => refreshDbPoolMetrics(pool._writerPool),
+    15000,
+  );
+  lifecycle.onShutdown(() => {
+    clearInterval(metricsTimer);
   });
 
   server.listen(PORT, () => {
