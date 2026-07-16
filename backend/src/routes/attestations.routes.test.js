@@ -158,13 +158,14 @@ describe("GET / (stats)", () => {
 
 describe("GET /by-source", () => {
   test("looks up an existing attestation", async () => {
+    const VALID_HASH = "0x" + "f".repeat(64);
     pool.query.mockResolvedValueOnce({
       rows: [
         {
           id: "abc",
           on_chain_id: 5,
           source_chain: "ethereum",
-          source_tx_hash: "0xfeed",
+          source_tx_hash: VALID_HASH,
           donor_address: stellarAddress("A"),
           project_id: "p",
           amount_usd: "1",
@@ -179,7 +180,7 @@ describe("GET /by-source", () => {
 
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "ethereum", source_tx_hash: VALID_HASH };
     const res = makeResponse();
     await invoke(handler, req, res);
 
@@ -187,15 +188,16 @@ describe("GET /by-source", () => {
     expect(res.body.data).toMatchObject({
       onChainId: 5,
       sourceChain: "ethereum",
-      sourceTxHash: "0xfeed",
+      sourceTxHash: VALID_HASH,
     });
   });
 
   test("returns 404 when not found", async () => {
+    const VALID_HASH = "0x" + "f".repeat(64);
     pool.query.mockResolvedValueOnce({ rows: [] });
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "ethereum", source_tx_hash: VALID_HASH };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(404);
@@ -215,7 +217,7 @@ describe("GET /by-source", () => {
   test("returns 400 for an unsupported source chain", async () => {
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "dogecoin", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "dogecoin", source_tx_hash: "0x" + "f".repeat(64) };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(400);
@@ -231,7 +233,7 @@ describe("GET /by-donor/:publicKey", () => {
           id: "1",
           on_chain_id: 1,
           source_chain: "ethereum",
-          source_tx_hash: "0xa",
+          source_tx_hash: "0x" + "a".repeat(64),
           donor_address: stellarAddress("A"),
           project_id: "p",
           amount_usd: "1",
@@ -272,7 +274,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "ethereum",
-        source_tx_hash: "0xdead",
+        source_tx_hash: "0x" + "d".repeat(64),
         donor_address: stellarAddress("A"),
         project_id: "p-1",
       },
@@ -294,7 +296,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "dogecoin",
-        source_tx_hash: "0xd",
+        source_tx_hash: "0x" + "1".repeat(64),
         donor_address: stellarAddress("A"),
         project_id: "p-1",
       },
@@ -310,7 +312,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "ethereum",
-        source_tx_hash: "0xd",
+        source_tx_hash: "0x" + "1".repeat(64),
         donor_address: stellarAddress("A"),
       },
     });
@@ -324,7 +326,7 @@ describe("POST /build-proof", () => {
 describe("POST / (record)", () => {
   const baseInput = {
     source_chain: "ethereum",
-    source_tx_hash: "0xbead",
+    source_tx_hash: "0x" + "b".repeat(64),
     donor_address: stellarAddress("A"),
     project_id: "p-7",
   };
@@ -513,9 +515,10 @@ describe("POST /:id/revoke", () => {
   test("returns 401 when the admin key is invalid", async () => {
     process.env.ADMIN_API_KEY = "test-admin-key";
     const handler = pickHandler("post", "/:id/revoke");
-    const req = buildRequest();
+    const req = buildRequest({
+      headers: { "x-admin-key": "wrong-key" },
+    });
     req.params = { id: "11111111-2222-4333-8444-555555555555" };
-    req.headers = { "x-admin-key": "wrong-key" };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(401);
@@ -539,9 +542,10 @@ describe("POST /:id/revoke", () => {
     };
     pool.query.mockResolvedValueOnce({ rows: [revoked] });
     const handler = pickHandler("post", "/:id/revoke");
-    const req = buildRequest();
+    const req = buildRequest({
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     req.params = { id: "11111111-2222-4333-8444-555555555555" };
-    req.headers = { "x-admin-key": "test-admin-key" };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(200);
@@ -555,9 +559,10 @@ describe("POST /:id/revoke", () => {
     process.env.ADMIN_API_KEY = "test-admin-key";
     pool.query.mockResolvedValueOnce({ rows: [] });
     const handler = pickHandler("post", "/:id/revoke");
-    const req = buildRequest();
+    const req = buildRequest({
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     req.params = { id: "11111111-2222-4333-8444-555555555555" };
-    req.headers = { "x-admin-key": "test-admin-key" };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(404);
@@ -566,9 +571,10 @@ describe("POST /:id/revoke", () => {
   test("rejects malformed UUID before auth", async () => {
     process.env.ADMIN_API_KEY = "test-admin-key";
     const handler = pickHandler("post", "/:id/revoke");
-    const req = buildRequest();
+    const req = buildRequest({
+      headers: { "x-admin-key": "test-admin-key" },
+    });
     req.params = { id: "not-a-uuid" };
-    req.headers = { "x-admin-key": "test-admin-key" };
     const res = makeResponse();
     await invoke(handler, req, res);
     // 400 wins over 401 — malformed input is rejected before auth so callers
