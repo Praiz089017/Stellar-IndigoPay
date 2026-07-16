@@ -17,9 +17,13 @@
 
 const express = require("express");
 const router = express.Router();
-const { authenticateAdmin } = require("../../lib/adminAuth");
+const { adminRequired } = require("../../middleware/auth");
 const { getStatus, rescan, start, stop } = require("../../services/sorobanEventService");
 const logger = require("../../logger");
+
+// Apply admin authentication to all routes in this router, following the
+// same pattern as webhooks.js, queues.js, and other admin sub-routers.
+router.use(adminRequired);
 
 /**
  * GET /api/v1/admin/events/status
@@ -27,7 +31,7 @@ const logger = require("../../logger");
  * Returns the current health and state of the Soroban event service.
  * Requires admin authentication.
  */
-router.get("/status", authenticateAdmin, async (req, res) => {
+router.get("/status", async (req, res) => {
   try {
     const status = getStatus();
     res.json({ success: true, data: status });
@@ -49,14 +53,14 @@ router.get("/status", authenticateAdmin, async (req, res) => {
  *
  * Body: { cursor?: string }
  */
-router.post("/rescan", authenticateAdmin, async (req, res) => {
+router.post("/rescan", async (req, res) => {
   try {
     const { cursor } = req.body || {};
 
     logger.warn(
       {
         event: "admin_events_rescan_requested",
-        admin: req.admin?.address || "unknown",
+        admin: req.admin?.sub || "unknown",
         cursor: cursor || "(start)",
       },
       "Admin requested Soroban event rescan",
@@ -79,12 +83,12 @@ router.post("/rescan", authenticateAdmin, async (req, res) => {
  * Restarts the Soroban event service. Useful after configuration changes
  * or to recover from a stalled state.
  */
-router.post("/restart", authenticateAdmin, async (req, res) => {
+router.post("/restart", async (req, res) => {
   try {
     logger.warn(
       {
         event: "admin_events_restart_requested",
-        admin: req.admin?.address || "unknown",
+        admin: req.admin?.sub || "unknown",
       },
       "Admin requested Soroban event service restart",
     );
