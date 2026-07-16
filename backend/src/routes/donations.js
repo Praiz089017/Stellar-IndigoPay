@@ -12,6 +12,7 @@ const { createRateLimiter } = require("../middleware/rateLimiter");
 const { mapDonationRow } = require("../services/store");
 const { enqueueProfileUpdate } = require("../services/profileQueue");
 const { server } = require("../services/stellar");
+const { AppError } = require("../errors");
 const donationLimiter = createRateLimiter(10, 1); // 10 requests per minute
 
 // Local EventEmitter used by both the POST /api/donations handler and the
@@ -21,17 +22,13 @@ const donationEvents = new EventEmitter();
 
 function validateKey(k) {
   if (!k || !/^G[A-Z0-9]{55}$/.test(k)) {
-    const e = new Error("Invalid Stellar public key");
-    e.status = 400;
-    throw e;
+    throw new AppError("INVALID_ADDRESS");
   }
 }
 
 function validateTxHash(h) {
   if (!h || !/^[a-fA-F0-9]{64}$/.test(h)) {
-    const e = new Error("Invalid transaction hash");
-    e.status = 400;
-    throw e;
+    throw new AppError("INVALID_TX_HASH");
   }
 }
 
@@ -69,9 +66,7 @@ async function recordDonation(req, res, next) {
       [projectId],
     );
     if (!projectResult.rows[0]) {
-      const e = new Error("Project not found");
-      e.status = 404;
-      throw e;
+      throw new AppError("PROJECT_NOT_FOUND");
     }
 
     // Determine numeric amount depending on currency
@@ -79,9 +74,10 @@ async function recordDonation(req, res, next) {
       currency === "XLM" ? (amountXLM ?? amount) : amount,
     );
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      const e = new Error("Invalid amount");
-      e.status = 400;
-      throw e;
+      throw new AppError("VALIDATION_ERROR", {
+        field: "amount",
+        detail: "Invalid amount",
+      });
     }
 
     // Deduplicate by tx hash
@@ -101,14 +97,12 @@ async function recordDonation(req, res, next) {
     try {
       onChainTx = await server.getTransaction(transactionHash);
     } catch {
-      const e = new Error("Transaction not found on Stellar");
-      e.status = 400;
-      throw e;
+      throw new AppError("TX_NOT_FOUND");
     }
     if (!onChainTx || onChainTx.successful !== true) {
-      const e = new Error("Transaction not confirmed on Stellar");
-      e.status = 400;
-      throw e;
+      throw new AppError("TX_FAILED", {
+        detail: "Transaction not confirmed on Stellar",
+      });
     }
 
     await client.query("BEGIN");
@@ -380,9 +374,10 @@ router.get("/:id", async (req, res, next) => {
         id,
       )
     ) {
-      const e = new Error("Invalid donation ID");
-      e.status = 400;
-      throw e;
+      throw new AppError("VALIDATION_ERROR", {
+        field: "id",
+        detail: "Invalid donation ID",
+      });
     }
 
     const USDC_TO_XLM_RATE = parseFloat(process.env.USDC_TO_XLM_RATE || "8.0");
@@ -406,9 +401,7 @@ router.get("/:id", async (req, res, next) => {
     const result = await pool.query(query, [id]);
 
     if (!result.rows[0]) {
-      const e = new Error("Donation not found");
-      e.status = 404;
-      throw e;
+      throw new AppError("DONATION_NOT_FOUND");
     }
 
     const row = result.rows[0];

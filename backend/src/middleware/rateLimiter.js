@@ -21,6 +21,7 @@
 
 const rateLimit = require("express-rate-limit");
 const logger = require("../logger");
+const { sendAppError } = require("../errors");
 
 // Re-export the legacy factory unchanged so existing route-level limiters
 // continue to work without modification.
@@ -43,9 +44,7 @@ const createRateLimiter = (maxRequests, windowMinutes) => {
         "Rate limit exceeded",
       );
       res.set("Retry-After", Math.ceil(windowMinutes * 60));
-      return res.status(429).json({
-        message: "Too many requests — Try again later.",
-      });
+      return sendAppError(res, "RATE_LIMITED");
     },
   });
 };
@@ -164,10 +163,7 @@ async function redisRateLimiter(req, res, next) {
         "Rate limit exceeded (Redis sliding window)",
       );
 
-      return res.status(429).json({
-        error: "Too many requests — Try again later.",
-        retryAfter: result.reset,
-      });
+      return sendAppError(res, "RATE_LIMITED", { retryAfter: result.reset });
     }
 
     next();
