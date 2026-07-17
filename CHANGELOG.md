@@ -29,6 +29,14 @@
 
 * **docs:** add CONTRIBUTORS.md to credit community work (GF-015, closes #64)
 
+* **frontend:** build admin audit log viewer with filtering and CSV export (GF-028, closes #83)
+  - Add `/admin/audit` page with filterable, paginated audit log table
+  - Add `AuditLogTable.tsx` — reusable component with filters (actor, action, target, date range, full-text search), pagination (50/page), and CSV export
+  - Add "Audit Log" link to admin navigation sidebar
+  - Fetch distinct action values from stats API for the action filter dropdown
+  - CSV export downloads via `GET /api/admin/audit-log/export/csv` with current filters
+  - 15 frontend test cases covering all filter states, pagination, export, loading/error/empty states
+
 * **frontend:** build donor impact certificate with shareable OG social preview (GF-022, closes #79)
   - Add server-rendered OG image endpoint `/api/og/donor/[publicKey]` using `@vercel/og` (1200×630px, Edge Runtime)
   - Generate styled impact card with donor name, XLM donated, badge tier, CO₂ offset, and CTA
