@@ -720,9 +720,7 @@ mod fuzz {
             let donor = Address::generate(&env);
             fund_usdc(&env, &usdc_token, &donor, usdc_amount);
 
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.donate_usdc(&usdc_token, &donor, &project_id, &usdc_amount, &MSG_HASH);
-            }));
+            let result = client.try_donate_usdc(&usdc_token, &donor, &project_id, &usdc_amount, &MSG_HASH);
             prop_assert!(result.is_err(), "donate_usdc should panic on CO2 overflow");
         }
     } // END of proptest!
@@ -900,12 +898,12 @@ mod fuzz {
     }
 
     #[test]
-    #[should_panic(expected = "None tier voter should panic")]
     fn test_badge_weighted_voting_none_tier_panics() {
         let (env, admin, client, project_id) = setup_with_admin();
         client.create_proposal(&admin, &project_id, &720u32);
 
         let voter = Address::generate(&env);
-        client.vote_verify_project(&voter, &project_id, &true);
+        let result = client.try_vote_verify_project(&voter, &project_id, &true);
+        assert!(result.is_err(), "None tier voter should panic");
     }
 }
