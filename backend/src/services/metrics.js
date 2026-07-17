@@ -108,6 +108,26 @@ const cacheOperationsTotal = new client.Counter({
   registers: [registry],
 });
 
+const cacheHits = new client.Counter({
+  name: "indigopay_cache_hits_total",
+  help: "Total number of Redis cache hits, labelled by route.",
+  labelNames: ["route"],
+  registers: [registry],
+});
+
+const cacheMisses = new client.Counter({
+  name: "indigopay_cache_misses_total",
+  help: "Total number of Redis cache misses (computed fresh), labelled by route.",
+  labelNames: ["route"],
+  registers: [registry],
+});
+
+const cacheCoalesced = new client.Counter({
+  name: "indigopay_cache_coalesced_total",
+  help: "Total number of requests served via request coalescing (single-flight).",
+  registers: [registry],
+});
+
 const queueJobsTotal = new client.Counter({
   name: "queue_jobs_total",
   help: "pg-boss jobs, labelled by queue and outcome (completed|failed|started).",
@@ -356,6 +376,9 @@ module.exports = {
   refreshDbPoolMetrics,
   refreshQueueMetrics,
   updateSecretRotationMetrics,
+  cacheHits,
+  cacheMisses,
+  cacheCoalesced,
   metrics: {
     httpRequestsTotal,
     httpRequestDurationSeconds,
@@ -368,6 +391,9 @@ module.exports = {
     dbConnectionErrorsTotal,
     dbQueryDurationSeconds,
     cacheOperationsTotal,
+    cacheHits,
+    cacheMisses,
+    cacheCoalesced,
     queueJobsTotal,
     indexerLagSeconds,
     indexerRunning,

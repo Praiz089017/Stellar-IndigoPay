@@ -263,6 +263,7 @@ const routeMounts = [
   "notifications",
   "verification",
   "oracle",
+  "map",
 ];
 
 for (const name of routeMounts) {

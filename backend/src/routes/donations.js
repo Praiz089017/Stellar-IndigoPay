@@ -18,6 +18,7 @@ const {
   uuid: uuidValidator,
 } = require("../validators/schemas");
 const { mapDonationRow } = require("../services/store");
+const { invalidateCache } = require("../middleware/cache");
 const { enqueueProfileUpdate } = require("../services/profileQueue");
 const { enqueuePushNotification } = require("../services/pushQueue");
 const { server } = require("../services/stellar");
@@ -268,6 +269,11 @@ async function recordDonation(req, res, next) {
 
     const mappedDonation = mapDonationRow(donationResult.rows[0]);
     donationEvents.emit("new_donation", mappedDonation);
+
+    invalidateCache(`cache:v1:projects:detail:${projectId}`);
+    invalidateCache("cache:v1:leaderboard:*");
+    invalidateCache("cache:v1:stats:global");
+    invalidateCache("cache:v1:impact:global");
 
     const responseBody = { success: true, data: mappedDonation };
     res.status(201).json(responseBody);

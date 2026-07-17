@@ -6,8 +6,9 @@ jest.mock("../db/pool", () => ({
 }));
 
 jest.mock("../services/redis", () => ({
-  get: jest.fn(),
-  set: jest.fn(),
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  deletePattern: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("../services/stellar", () => ({
@@ -91,9 +92,10 @@ describe("GET /api/projects", () => {
   let app;
 
   beforeEach(() => {
-    app = buildApp();
-    redis.get.mockResolvedValue(null);
     jest.clearAllMocks();
+    redis.get.mockResolvedValue(null);
+    redis.set.mockResolvedValue(undefined);
+    app = buildApp();
   });
 
   test("filters by category", async () => {
@@ -159,9 +161,10 @@ describe("GET /api/projects/:id", () => {
   let app;
 
   beforeEach(() => {
-    app = buildApp();
-    redis.get.mockResolvedValue(null);
     jest.clearAllMocks();
+    redis.get.mockResolvedValue(null);
+    redis.set.mockResolvedValue(undefined);
+    app = buildApp();
   });
 
   test("returns a single project", async () => {
