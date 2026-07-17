@@ -314,17 +314,6 @@ mod fuzz {
         }
 
         /// Zero-amount donation must panic — contract requires positive amounts.
-        #[test]
-        fn prop_zero_amount_donation_rejected(
-            _dummy in 0..1,
-        ) {
-            let (env, _cid, client, project_id, token) = setup();
-            let donor = Address::generate(&env);
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.donate(&token, &donor, &project_id, &0i128, &42u32);
-            }));
-            prop_assert!(result.is_err(), "donate with amount=0 should panic");
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 4 (continued): Same donor — donation_count stays at 1
@@ -396,23 +385,6 @@ mod fuzz {
         // INVARIANT 6: Project paused flag is only true when active is true
         // ═══════════════════════════════════════════════════════════════════
 
-        #[test]
-        fn prop_deactivated_project_cannot_be_paused(
-            _dummy in 0..1,
-        ) {
-            let (_env, admin, client, project_id) = setup_with_admin();
-
-            client.deactivate_project(&admin, &project_id);
-
-            // Pausing a deactivated project must panic
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.pause_project(&admin, &project_id);
-            }));
-            prop_assert!(result.is_err(), "pause_project should panic when project is deactivated");
-
-            let project = client.get_project(&project_id);
-            prop_assert!(!project.active);
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 7: Deactivated project rejects donations
@@ -519,62 +491,13 @@ mod fuzz {
             prop_assert_eq!(project.co2_per_xlm, new_rate);
         }
 
-        #[test]
-        fn prop_zero_co2_rate_rejected(
-            _dummy in 0..1,
-        ) {
-            let (_env, admin, client, project_id) = setup_with_admin();
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.update_project_co2_rate(&admin, &project_id, &0u32);
-            }));
-            prop_assert!(result.is_err(), "update_project_co2_rate with 0 should panic");
-        }
 
-        #[test]
-        fn prop_excessive_co2_rate_rejected(
-            _dummy in 0..1,
-        ) {
-            let (_env, admin, client, project_id) = setup_with_admin();
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.update_project_co2_rate(&admin, &project_id, &(MAX_CO2_PER_XLM + 1));
-            }));
-            prop_assert!(result.is_err(), "update_project_co2_rate > MAX should panic");
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 11: Two-step admin transfer flow
         // ═══════════════════════════════════════════════════════════════════
 
-        #[test]
-        fn prop_admin_transfer_happy_path(
-            _dummy in 0..1,
-        ) {
-            let (env, admin, client, _project_id) = setup_with_admin();
-            let new_admin = Address::generate(&env);
 
-            client.transfer_admin(&admin, &new_admin);
-            let pending = client.get_pending_admin();
-            prop_assert_eq!(pending, Some(new_admin.clone()));
-
-            client.accept_admin();
-            let stored_admin = client.get_admin();
-            prop_assert_eq!(stored_admin, new_admin);
-            prop_assert_eq!(client.get_pending_admin(), None);
-        }
-
-        #[test]
-        fn prop_admin_transfer_cancel(
-            _dummy in 0..1,
-        ) {
-            let (env, admin, client, _project_id) = setup_with_admin();
-            let new_admin = Address::generate(&env);
-            client.transfer_admin(&admin, &new_admin);
-            prop_assert!(client.get_pending_admin().is_some());
-
-            client.cancel_admin_transfer(&admin);
-            prop_assert!(client.get_pending_admin().is_none());
-            prop_assert_eq!(client.get_admin(), admin);
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 12: Contract pause/unpause gating
@@ -610,23 +533,6 @@ mod fuzz {
         // INVARIANT 13: Duplicate project ID rejection
         // ═══════════════════════════════════════════════════════════════════
 
-        #[test]
-        fn prop_duplicate_project_id_rejected(
-            _dummy in 0..1,
-        ) {
-            let (env, admin, client, project_id) = setup_with_admin();
-            let wallet2 = Address::generate(&env);
-            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                client.register_project(
-                    &admin,
-                    &project_id,
-                    &SorobanString::from_str(&env, "Duplicate"),
-                    &wallet2,
-                    &50u32,
-                );
-            }));
-            prop_assert!(result.is_err(), "register_project with duplicate ID should panic");
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 14: Multi-project — global_total == sum(project.totals)
@@ -674,31 +580,7 @@ mod fuzz {
         // INVARIANT 15: Governance — proposal creation and veto
         // ═══════════════════════════════════════════════════════════════════
 
-        #[test]
-        fn prop_veto_before_resolution(
-            _dummy in 0..1,
-        ) {
-            let (_env, admin, client, project_id) = setup_with_admin();
-            client.create_proposal(&admin, &project_id, &720u32);
-            let proposal_before = client.get_proposal(&project_id);
-            prop_assert!(!proposal_before.resolved);
 
-            client.veto_proposal(&admin, &project_id);
-            let proposal_after = client.get_proposal(&project_id);
-            prop_assert!(proposal_after.resolved);
-        }
-
-        #[test]
-        fn prop_proposal_default_duration(
-            _dummy in 0..1,
-        ) {
-            let (_env, admin, client, project_id) = setup_with_admin();
-            client.create_proposal(&admin, &project_id, &0u32);
-            let proposal = client.get_proposal(&project_id);
-            prop_assert!(!proposal.resolved);
-            prop_assert_eq!(proposal.votes_for, 0u32);
-            prop_assert_eq!(proposal.votes_against, 0u32);
-        }
 
 
 
@@ -737,30 +619,6 @@ mod fuzz {
         // INVARIANT 16: deactivate_all_projects flips ALL projects to inactive
         // ═══════════════════════════════════════════════════════════════════
 
-        #[test]
-        fn prop_deactivate_all_projects(
-            _dummy in 0..1,
-        ) {
-            let (env, admin, client, project_id) = setup_with_admin();
-
-            let wallet_b = Address::generate(&env);
-            let project_b = SorobanString::from_str(&env, "proj-bulk-b");
-            client.register_project(
-                &admin,
-                &project_b,
-                &SorobanString::from_str(&env, "Bulk B"),
-                &wallet_b,
-                &75u32,
-            );
-
-            prop_assert!(client.get_project(&project_id).active);
-            prop_assert!(client.get_project(&project_b).active);
-
-            client.deactivate_all_projects(&admin);
-
-            prop_assert!(!client.get_project(&project_id).active);
-            prop_assert!(!client.get_project(&project_b).active);
-        }
 
         // ═══════════════════════════════════════════════════════════════════
         // INVARIANT 17: Project milestone NFT — threshold gating
@@ -868,6 +726,150 @@ mod fuzz {
             prop_assert!(result.is_err(), "donate_usdc should panic on CO2 overflow");
         }
     } // END of proptest!
+
+    #[test]
+    fn test_zero_amount_donation_rejected() {
+        let (env, _cid, client, project_id, token) = setup();
+        let donor = Address::generate(&env);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.donate(&token, &donor, &project_id, &0i128, &42u32);
+        }));
+        assert!(result.is_err(), "donate with amount=0 should panic");
+    }
+
+    #[test]
+    fn test_deactivated_project_cannot_be_paused() {
+        let (_env, admin, client, project_id) = setup_with_admin();
+
+        client.deactivate_project(&admin, &project_id);
+
+        // Pausing a deactivated project must panic
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.pause_project(&admin, &project_id);
+        }));
+        assert!(
+            result.is_err(),
+            "pause_project should panic when project is deactivated"
+        );
+
+        let project = client.get_project(&project_id);
+        assert!(!project.active);
+    }
+
+    #[test]
+    fn test_zero_co2_rate_rejected() {
+        let (_env, admin, client, project_id) = setup_with_admin();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.update_project_co2_rate(&admin, &project_id, &0u32);
+        }));
+        assert!(
+            result.is_err(),
+            "update_project_co2_rate with 0 should panic"
+        );
+    }
+
+    #[test]
+    fn test_excessive_co2_rate_rejected() {
+        let (_env, admin, client, project_id) = setup_with_admin();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.update_project_co2_rate(&admin, &project_id, &(MAX_CO2_PER_XLM + 1));
+        }));
+        assert!(
+            result.is_err(),
+            "update_project_co2_rate > MAX should panic"
+        );
+    }
+
+    #[test]
+    fn test_admin_transfer_happy_path() {
+        let (env, admin, client, _project_id) = setup_with_admin();
+        let new_admin = Address::generate(&env);
+
+        client.transfer_admin(&admin, &new_admin);
+        let pending = client.get_pending_admin();
+        assert_eq!(pending, Some(new_admin.clone()));
+
+        client.accept_admin();
+        let stored_admin = client.get_admin();
+        assert_eq!(stored_admin, new_admin);
+        assert_eq!(client.get_pending_admin(), None);
+    }
+
+    #[test]
+    fn test_admin_transfer_cancel() {
+        let (env, admin, client, _project_id) = setup_with_admin();
+        let new_admin = Address::generate(&env);
+        client.transfer_admin(&admin, &new_admin);
+        assert!(client.get_pending_admin().is_some());
+
+        client.cancel_admin_transfer(&admin);
+        assert!(client.get_pending_admin().is_none());
+        assert_eq!(client.get_admin(), admin);
+    }
+
+    #[test]
+    fn test_duplicate_project_id_rejected() {
+        let (env, admin, client, project_id) = setup_with_admin();
+        let wallet2 = Address::generate(&env);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            client.register_project(
+                &admin,
+                &project_id,
+                &SorobanString::from_str(&env, "Duplicate"),
+                &wallet2,
+                &50u32,
+            );
+        }));
+        assert!(
+            result.is_err(),
+            "register_project with duplicate ID should panic"
+        );
+    }
+
+    #[test]
+    fn test_veto_before_resolution() {
+        let (_env, admin, client, project_id) = setup_with_admin();
+        client.create_proposal(&admin, &project_id, &720u32);
+        let proposal_before = client.get_proposal(&project_id);
+        assert!(!proposal_before.resolved);
+
+        client.veto_proposal(&admin, &project_id);
+        let proposal_after = client.get_proposal(&project_id);
+        assert!(proposal_after.resolved);
+    }
+
+    #[test]
+    fn test_proposal_default_duration() {
+        let (_env, admin, client, project_id) = setup_with_admin();
+        client.create_proposal(&admin, &project_id, &0u32);
+        let proposal = client.get_proposal(&project_id);
+        assert!(!proposal.resolved);
+        assert_eq!(proposal.votes_for, 0u32);
+        assert_eq!(proposal.votes_against, 0u32);
+    }
+
+    #[test]
+    fn test_deactivate_all_projects() {
+        let (env, admin, client, project_id) = setup_with_admin();
+
+        let wallet_b = Address::generate(&env);
+        let project_b = SorobanString::from_str(&env, "proj-bulk-b");
+        client.register_project(
+            &admin,
+            &project_b,
+            &SorobanString::from_str(&env, "Bulk B"),
+            &wallet_b,
+            &75u32,
+        );
+
+        assert!(client.get_project(&project_id).active);
+        assert!(client.get_project(&project_b).active);
+
+        client.deactivate_all_projects(&admin);
+
+        assert!(!client.get_project(&project_id).active);
+        assert!(!client.get_project(&project_b).active);
+    }
 
     #[test]
     fn test_badge_weighted_voting_seedling_and_earth_guardian() {
