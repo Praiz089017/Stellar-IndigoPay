@@ -30,8 +30,14 @@ const router = express.Router();
 const fs = require("fs");
 const path = require("path");
 const { v4: uuid } = require("uuid");
+const { z } = require("zod");
 const pool = require("../db/pool");
 const { adminRequired } = require("../middleware/auth");
+const { validate } = require("../middleware/validate");
+const {
+  stellarAddress,
+  PROJECT_CATEGORIES,
+} = require("../validators/schemas");
 const { logAdminAction } = require("../services/audit");
 const { createRateLimiter } = require("../middleware/rateLimiter");
 const { sendAdminVerificationNotification } = require("../services/email");
@@ -44,18 +50,6 @@ const {
 const { AppError } = require("../errors");
 
 const submitLimiter = createRateLimiter(10, 15); // 10 submissions / 15 min / IP
-
-const VALID_CATEGORIES = [
-  "Reforestation",
-  "Solar Energy",
-  "Ocean Conservation",
-  "Clean Water",
-  "Wildlife Protection",
-  "Carbon Capture",
-  "Wind Energy",
-  "Sustainable Agriculture",
-  "Other",
-];
 
 const VALID_TRANSITIONS = {
   pending: ["in_review", "rejected"],
@@ -249,9 +243,9 @@ router.post("/", submitLimiter, async (req, res, next) => {
       typeof body.projectCategory === "string"
         ? body.projectCategory.trim()
         : "";
-    if (!VALID_CATEGORIES.includes(projectCategory)) {
+    if (!PROJECT_CATEGORIES.includes(projectCategory)) {
       errors.push(
-        `projectCategory must be one of: ${VALID_CATEGORIES.join(", ")}`,
+        `projectCategory must be one of: ${PROJECT_CATEGORIES.join(", ")}`,
       );
     }
 
@@ -347,22 +341,22 @@ router.post("/", submitLimiter, async (req, res, next) => {
        ) RETURNING *`,
       [
         id,
-        orgName,
-        website,
-        country,
-        email,
-        walletAddress,
-        projectName,
-        projectCategory,
-        projectLocation,
-        projectDescription,
-        co2PerXLM.toFixed(7),
-        expectedAnnualTonnesCO2 != null
-          ? expectedAnnualTonnesCO2.toFixed(7)
+        body.organizationName.trim(),
+        body.organizationWebsite?.trim() || null,
+        body.organizationCountry?.trim() || null,
+        body.contactEmail.trim().toLowerCase(),
+        body.walletAddress,
+        body.projectName.trim(),
+        body.projectCategory,
+        body.projectLocation.trim(),
+        body.projectDescription?.trim() || null,
+        Number.parseFloat(body.co2PerXLM).toFixed(7),
+        body.expectedAnnualTonnesCO2 != null && body.expectedAnnualTonnesCO2 !== ""
+          ? Number.parseFloat(body.expectedAnnualTonnesCO2).toFixed(7)
           : null,
         JSON.stringify(processedDocs),
         backendName(),
-        notes,
+        body.notes?.trim() || null,
       ],
     );
 
