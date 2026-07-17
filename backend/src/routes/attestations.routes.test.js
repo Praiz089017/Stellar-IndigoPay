@@ -24,6 +24,29 @@ jest.mock("../middleware/rateLimiter", () => ({
   createRateLimiter: () => (req, res, next) => next(),
 }));
 
+// Mock the auth middleware so revoke route tests don't require a real JWT
+// or admin key. The mock always calls next() and attaches a test admin
+// principal, which lets us focus on the route logic rather than auth setup.
+jest.mock("../middleware/auth", () => ({
+  adminRequired: jest.fn((req, res, next) => {
+    // Check for X-Admin-Key and verify it matches ADMIN_API_KEY. If not,
+    // simulate the same behaviour as the real middleware (401).
+    const adminKey = req.get && req.get("X-Admin-Key");
+    const configured =
+      (process.env.ADMIN_API_KEY || "").trim() ||
+      (process.env.ADMIN_API_KEYS || "").split(",")[0];
+    if (!adminKey) {
+      return res.status(401).json({ success: false, error: "Authentication required" });
+    }
+    if (adminKey !== configured) {
+      return res.status(401).json({ success: false, error: "Invalid admin key" });
+    }
+    req.admin = { role: "admin", sub: "test-admin", authMethod: "x-admin-key" };
+    next();
+  }),
+  isValidAdminKey: jest.fn(() => true),
+}));
+
 // Environment for the relayer signing secret. Tests below use the
 // /build-proof endpoint to mint a real signature that the / POST route
 // then verifies — so the secret must match across the two.
@@ -48,7 +71,7 @@ function buildRequest({
     url,
     headers,
     get(name) {
-      return headers[name.toLowerCase()];
+      return req.headers[name.toLowerCase()];
     },
     app: { get: () => undefined },
     params: {},
@@ -164,7 +187,7 @@ describe("GET /by-source", () => {
           id: "abc",
           on_chain_id: 5,
           source_chain: "ethereum",
-          source_tx_hash: "0xfeed",
+          source_tx_hash: "0xfeed1234567890abcdef1234567890abcdef1234567890abcdef12",
           donor_address: stellarAddress("A"),
           project_id: "p",
           amount_usd: "1",
@@ -179,7 +202,7 @@ describe("GET /by-source", () => {
 
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed1234567890abcdef1234567890abcdef1234567890abcdef12" };
     const res = makeResponse();
     await invoke(handler, req, res);
 
@@ -187,7 +210,7 @@ describe("GET /by-source", () => {
     expect(res.body.data).toMatchObject({
       onChainId: 5,
       sourceChain: "ethereum",
-      sourceTxHash: "0xfeed",
+      sourceTxHash: "0xfeed1234567890abcdef1234567890abcdef1234567890abcdef12",
     });
   });
 
@@ -195,7 +218,7 @@ describe("GET /by-source", () => {
     pool.query.mockResolvedValueOnce({ rows: [] });
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "ethereum", source_tx_hash: "0xfeed1234567890abcdef1234567890abcdef1234567890abcdef12" };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(404);
@@ -215,7 +238,7 @@ describe("GET /by-source", () => {
   test("returns 400 for an unsupported source chain", async () => {
     const handler = pickHandler("get", "/by-source");
     const req = buildRequest();
-    req.query = { source_chain: "dogecoin", source_tx_hash: "0xfeed" };
+    req.query = { source_chain: "dogecoin", source_tx_hash: "0xfeed1234567890abcdef1234567890abcdef1234567890abcdef12" };
     const res = makeResponse();
     await invoke(handler, req, res);
     expect(res.statusCode).toBe(400);
@@ -231,7 +254,7 @@ describe("GET /by-donor/:publicKey", () => {
           id: "1",
           on_chain_id: 1,
           source_chain: "ethereum",
-          source_tx_hash: "0xa",
+          source_tx_hash: "0xa1234567890abcdef1234567890abcdef1234567890abcdef1234567",
           donor_address: stellarAddress("A"),
           project_id: "p",
           amount_usd: "1",
@@ -272,7 +295,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "ethereum",
-        source_tx_hash: "0xdead",
+        source_tx_hash: "0xdead1234567890abcdef1234567890abcdef1234567890abcdef12",
         donor_address: stellarAddress("A"),
         project_id: "p-1",
       },
@@ -294,7 +317,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "dogecoin",
-        source_tx_hash: "0xd",
+        source_tx_hash: "0xd1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         donor_address: stellarAddress("A"),
         project_id: "p-1",
       },
@@ -310,7 +333,7 @@ describe("POST /build-proof", () => {
       method: "POST",
       body: {
         source_chain: "ethereum",
-        source_tx_hash: "0xd",
+        source_tx_hash: "0xd1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         donor_address: stellarAddress("A"),
       },
     });
@@ -324,7 +347,7 @@ describe("POST /build-proof", () => {
 describe("POST / (record)", () => {
   const baseInput = {
     source_chain: "ethereum",
-    source_tx_hash: "0xbead",
+    source_tx_hash: "0xbead1234567890abcdef1234567890abcdef1234567890abcdef12",
     donor_address: stellarAddress("A"),
     project_id: "p-7",
   };
@@ -340,7 +363,7 @@ describe("POST / (record)", () => {
           id: "new-uuid",
           on_chain_id: 99,
           source_chain: "ethereum",
-          source_tx_hash: "0xbead",
+          source_tx_hash: "0xbead1234567890abcdef1234567890abcdef1234567890abcdef12",
           donor_address: stellarAddress("A"),
           project_id: "p-7",
           amount_usd: "10",
@@ -459,7 +482,7 @@ describe("POST /:id/verify", () => {
       id: "uuid",
       on_chain_id: 1,
       source_chain: "ethereum",
-      source_tx_hash: "0xa",
+      source_tx_hash: "0xa1234567890abcdef1234567890abcdef1234567890abcdef1234567",
       donor_address: stellarAddress("A"),
       project_id: "p",
       amount_usd: "10",
@@ -527,7 +550,7 @@ describe("POST /:id/revoke", () => {
       id: "11111111-2222-4333-8444-555555555555",
       on_chain_id: 1,
       source_chain: "ethereum",
-      source_tx_hash: "0xa",
+      source_tx_hash: "0xa1234567890abcdef1234567890abcdef1234567890abcdef1234567",
       donor_address: stellarAddress("A"),
       project_id: "p",
       amount_usd: "10",
@@ -585,7 +608,7 @@ describe("GET /:id (single)", () => {
           id: "11111111-2222-4333-8444-555555555555",
           on_chain_id: 3,
           source_chain: "ethereum",
-          source_tx_hash: "0xa",
+          source_tx_hash: "0xa1234567890abcdef1234567890abcdef1234567890abcdef1234567",
           donor_address: stellarAddress("A"),
           project_id: "p",
           amount_usd: "10",

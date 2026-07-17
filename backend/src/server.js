@@ -481,10 +481,22 @@ async function startServer() {
     await stopDLQWorker();
   });
 
-  // Soroban event service: stop the polling loop and persist the cursor.
+  // Soroban event service: start the polling loop.
+  try {
+    const sorobanEvents = require("./services/sorobanEventService");
+    sorobanEvents.start(io);
+  } catch (err) {
+    logger.error(
+      { event: "soroban_events_startup_error", err: err.message },
+      "Soroban event service failed to start",
+    );
+  }
+
+  // Soroban event service: stop the polling loop and persist the cursor on shutdown.
   lifecycle.onShutdown(async () => {
     try {
-      await stopSorobanEvents();
+      const sorobanEvents = require("./services/sorobanEventService");
+      if (typeof sorobanEvents.stop === "function") await sorobanEvents.stop();
     } catch {
       // Service may already be stopped; swallow.
     }

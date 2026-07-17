@@ -1,4 +1,8 @@
 #![no_std]
+#![allow(clippy::too_many_arguments)]
+#![allow(deprecated)]
+// The env.events().publish() calls use the deprecated `Events::publish`
+// method. The #[contractevent] migration is tracked in TODO(indigopay-272).
 /**
  * contracts/attestation-contract/src/lib.rs
  *
@@ -28,7 +32,7 @@
  *   cargo build --target wasm32v1-none --release
  */
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol, Vec,
+    contract, contractimpl, contracttype, symbol_short, Address, Env, String, Vec,
 };
 
 // ─── Source chains that this contract understands ───────────────────────────
@@ -37,10 +41,7 @@ use soroban_sdk::{
 // human-readable on indexer UIs ("ethereum", "polygon", "arbitrum", ...).
 const MAX_SOURCE_CHAIN_LEN: u32 = 32;
 const MAX_TX_HASH_LEN: u32 = 128;
-const MAX_DONOR_LEN: u32 = 64;
 const MAX_PROJECT_ID_LEN: u32 = 64;
-// 6 decimals is the ERC-20 USDC convention; XLM uses 7.
-const STROOP: i128 = 10_000_000;
 
 // ─── Status enum ────────────────────────────────────────────────────────────
 //
@@ -289,13 +290,13 @@ impl AttestationContract {
 
         // Length guards — Soroban Strings are unbounded on size so we add
         // explicit upper bounds to keep storage predictable.
-        if source_chain.len() == 0 || source_chain.len() > MAX_SOURCE_CHAIN_LEN {
+        if source_chain.is_empty() || source_chain.len() > MAX_SOURCE_CHAIN_LEN {
             panic!("Invalid source_chain length");
         }
-        if source_tx_hash.len() == 0 || source_tx_hash.len() > MAX_TX_HASH_LEN {
+        if source_tx_hash.is_empty() || source_tx_hash.len() > MAX_TX_HASH_LEN {
             panic!("Invalid source_tx_hash length");
         }
-        if project_id.len() == 0 || project_id.len() > MAX_PROJECT_ID_LEN {
+        if project_id.is_empty() || project_id.len() > MAX_PROJECT_ID_LEN {
             panic!("Invalid project_id length");
         }
         // Donor is a Soroban Address (protocol-bounded, ~56 chars public key).
@@ -430,9 +431,10 @@ impl AttestationContract {
             .get(&DataKey::PendingCount)
             .unwrap_or(0);
         if pending > 0 {
+            let new_pending = pending - 1;
             env.storage()
                 .instance()
-                .set(&DataKey::PendingCount, &pending - 1);
+                .set(&DataKey::PendingCount, &new_pending);
         }
 
         env.events().publish((symbol_short!("att_vfy"),), id);
@@ -465,9 +467,10 @@ impl AttestationContract {
                 .get(&DataKey::PendingCount)
                 .unwrap_or(0);
             if pending > 0 {
+                let new_pending = pending - 1;
                 env.storage()
                     .instance()
-                    .set(&DataKey::PendingCount, &pending - 1);
+                    .set(&DataKey::PendingCount, &new_pending);
             }
         }
         env.events()
@@ -490,6 +493,9 @@ impl AttestationContract {
         source_chain: String,
         source_tx_hash: String,
     ) -> Option<u64> {
+        // Clone before the move into the DataKey so we can compare later.
+        let chain_check = source_chain.clone();
+        let hash_check = source_tx_hash.clone();
         if !env
             .storage()
             .instance()
@@ -498,10 +504,8 @@ impl AttestationContract {
             return None;
         }
         // See note below: the on-chain replay flag doesn't carry the id, so
-        // we fall back to the next-id counter minus 1 when only one
-        // attestation exists. For multi-attestation chains the admin must
-        // use `get_attestation` directly after looking up via the backend
-        // index — a deliberate trade-off to avoid a second write per record.
+        // we fall back to scanning from the most recent id down to 1.
+        // next is the next available slot; the actual ids are 1..=next.
         let next: u64 = env
             .storage()
             .instance()
@@ -512,20 +516,19 @@ impl AttestationContract {
         }
         // Scan backwards from the most recent id. Bounded because `next`
         // itself caps at u64::MAX.
-        let mut cursor: u64 = next - 1;
+        let mut cursor: u64 = next;
         loop {
-            let rec: Attestation = match env.storage().instance().get(&DataKey::Attestation(cursor)) {
-                Some(v) => v,
-                None => return None,
-            };
-            // We can't read `source_chain` / `source_tx_hash` off the
-            // replay flag (the flag stores only `true`), so we compare on
-            // the record itself.
-            if rec.source_tx_hash == source_tx_hash && rec.source_chain == source_chain {
-                return Some(cursor);
-            }
             if cursor == 0 {
                 return None;
+            }
+            if let Some(rec) = env
+                .storage()
+                .instance()
+                .get::<DataKey, Attestation>(&DataKey::Attestation(cursor))
+            {
+                if rec.source_tx_hash == hash_check && rec.source_chain == chain_check {
+                    return Some(cursor);
+                }
             }
             cursor -= 1;
         }
