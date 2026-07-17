@@ -2733,13 +2733,12 @@ mod tests {
         assert_eq!(client.get_donation_count(), 1);
     }
 
-    // Note: total_raised overflow protection is already exercised by
-    // `fuzz_tests::donation_of_i128_max_panics` and `sequential_donations_panic_when_sum_exceeds_i128_max`,
-    // and the CO₂ `checked_mul` guard inside `donate` is unreachable
-    // from any valid `amount <= i128::MAX` (since
-    // `xlm_units * MAX_CO2_PER_XLM <= 9.22e16 < i128::MAX`), so no
-    // redundant overflow tests are kept here.
-
+    /// Note: total_raised overflow protection is already exercised by
+    /// `fuzz_tests::donation_of_i128_max_panics` and `sequential_donations_panic_when_sum_exceeds_i128_max`,
+    /// and the CO₂ `checked_mul` guard inside `donate` is unreachable
+    /// from any valid `amount <= i128::MAX` (since
+    /// `xlm_units * MAX_CO2_PER_XLM <= 9.22e16 < i128::MAX`), so no
+    /// redundant overflow tests are kept here.
     /// Replaying the same donor must NOT inflate `project.donor_count` —
     /// it counts unique donors.
     #[test]

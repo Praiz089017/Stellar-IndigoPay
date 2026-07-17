@@ -44,6 +44,10 @@ const logger = require("./logger");
 const requestLogger = require("./middleware/requestLogger");
 const requestId = require("./middleware/requestId");
 const queryRouter = require("./middleware/queryRouter");
+const {
+  apiVersionMiddleware,
+  registerApiVersionDiscoveryRoutes,
+} = require("./middleware/apiVersion");
 const metricsMiddleware = require("./middleware/metrics");
 const { refreshDbPoolMetrics } = require("./services/metrics");
 const {
@@ -190,6 +194,11 @@ app.use(redisRateLimiter);
 // Per-request HTTP metrics (BEFORE routes so it captures the full request).
 app.use(metricsMiddleware);
 
+// API version negotiation (header/path/query) + deprecation/sunset signaling.
+app.use("/api", apiVersionMiddleware);
+app.use("/api/v1", apiVersionMiddleware);
+registerApiVersionDiscoveryRoutes(app);
+
 // ── Swagger UI (development only) ───────────────────────────────────────────
 if (process.env.NODE_ENV !== "production") {
   try {
@@ -283,6 +292,21 @@ try {
   logger.error(
     { event: "route_load_failed", route: "analytics", err: err.message },
     "Failed to load analytics route module",
+  );
+}
+
+// Cross-chain donation attestation bridge (issue #125). The route file
+// exports an Express router that handles reads, writes, proof minting,
+// verification, and admin revoke. It is mounted under both the legacy
+// unversioned and the /v1 paths so existing callers keep working.
+try {
+  const attestationsRouter = require("./routes/attestations");
+  app.use("/api/attestations", attestationsRouter);
+  app.use("/api/v1/attestations", attestationsRouter);
+} catch (err) {
+  logger.error(
+    { event: "route_load_failed", route: "attestations", err: err.message },
+    "Failed to load attestations route module",
   );
 }
 
@@ -466,10 +490,22 @@ async function startServer() {
     await stopDLQWorker();
   });
 
-  // Soroban event service: stop the polling loop and persist the cursor.
+  // Soroban event service: start the polling loop.
+  try {
+    const sorobanEvents = require("./services/sorobanEventService");
+    sorobanEvents.start(io);
+  } catch (err) {
+    logger.error(
+      { event: "soroban_events_startup_error", err: err.message },
+      "Soroban event service failed to start",
+    );
+  }
+
+  // Soroban event service: stop the polling loop and persist the cursor on shutdown.
   lifecycle.onShutdown(async () => {
     try {
-      await stopSorobanEvents();
+      const sorobanEvents = require("./services/sorobanEventService");
+      if (typeof sorobanEvents.stop === "function") await sorobanEvents.stop();
     } catch {
       // Service may already be stopped; swallow.
     }
