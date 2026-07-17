@@ -327,6 +327,16 @@ fn calculate_badge(total_stroops: i128) -> BadgeTier {
     }
 }
 
+fn voting_weight_from_badge(badge: &BadgeTier) -> u32 {
+    match badge {
+        BadgeTier::None => 0,
+        BadgeTier::Seedling => 1,
+        BadgeTier::Tree => 3,
+        BadgeTier::Forest => 10,
+        BadgeTier::EarthGuardian => 25,
+    }
+}
+
 // ─── Contract ─────────────────────────────────────────────────────────────────
 
 #[contract]
@@ -1269,6 +1279,20 @@ impl IndigoPayContract {
         ensure_min_ttl(&env, VOTING_WINDOW_LEDGERS * 4);
     }
 
+    pub fn get_voter_weight(env: Env, voter: Address) -> u32 {
+        let stats: DonorStats = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonorStats(voter))
+            .unwrap_or(DonorStats {
+                total_donated: 0,
+                donation_count: 0,
+                badge: BadgeTier::None,
+                co2_offset_grams: 0,
+            });
+        voting_weight_from_badge(&stats.badge)
+    }
+
     /// Badge holders (≥ Seedling) cast a vote. One vote per address per proposal.
     pub fn vote_verify_project(env: Env, voter: Address, project_id: String, approve: bool) {
         voter.require_auth();
@@ -1287,6 +1311,8 @@ impl IndigoPayContract {
         if stats.badge == BadgeTier::None {
             panic!("Only badge holders (Seedling or above) can vote");
         }
+
+        let weight = voting_weight_from_badge(&stats.badge);
 
         let mut proposal: VoteProposal = env
             .storage()
@@ -1324,12 +1350,12 @@ impl IndigoPayContract {
         if approve {
             proposal.votes_for = proposal
                 .votes_for
-                .checked_add(1)
+                .checked_add(weight)
                 .expect("votes_for overflow");
         } else {
             proposal.votes_against = proposal
                 .votes_against
-                .checked_add(1)
+                .checked_add(weight)
                 .expect("votes_against overflow");
         }
         env.storage()
