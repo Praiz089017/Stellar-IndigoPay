@@ -99,6 +99,9 @@ async function recordDonation(req, res, next) {
     if (existingResult.rows[0])
       return res.json({
         success: true,
+        // Flag replayed idempotency keys so the client can treat the
+        // submission as already-completed instead of re-queuing it.
+        duplicate: true,
         data: mapDonationRow(existingResult.rows[0]),
       });
 
@@ -273,7 +276,31 @@ async function recordDonation(req, res, next) {
     const mappedDonation = mapDonationRow(donationResult.rows[0]);
     donationEvents.emit("new_donation", mappedDonation);
 
-    res.status(201).json({ success: true, data: mappedDonation });
+    // Surface updated donor statistics so clients can refresh the donor's
+    // aggregate view after a successful donation. Backwards compatible: this
+    // is a sibling key of `data`, not a change to the donation payload shape.
+    let donorStats = null;
+    try {
+      const statsResult = await client.query(
+        `SELECT total_donated_xlm, projects_supported, badges
+         FROM profiles WHERE public_key = $1`,
+        [donorAddress],
+      );
+      if (statsResult.rows[0]) {
+        const row = statsResult.rows[0];
+        donorStats = {
+          donorAddress,
+          totalDonatedXlm: parseFloat(row.total_donated_xlm ?? "0"),
+          projectsSupported: Number(row.projects_supported ?? 0),
+          badges: row.badges ?? [],
+        };
+      }
+    } catch {
+      // Donor stats are best-effort; never fail the donation response on this.
+      donorStats = null;
+    }
+
+    res.status(201).json({ success: true, data: mappedDonation, donorStats });
   } catch (e) {
     if (inTransaction && client) await client.query("ROLLBACK");
     next(e);
