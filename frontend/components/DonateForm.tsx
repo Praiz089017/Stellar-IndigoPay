@@ -2,6 +2,9 @@
  * components/DonateForm.tsx
  * Donation form for a climate project.
  */
+import FormField from "@/components/FormField";
+import { useFormValidation } from "@/hooks/useFormValidation";
+import { donationSchema } from "@/lib/validation/schemas";
 import { useState, useEffect } from "react";
 import {
   buildDonationTransaction,
@@ -19,6 +22,7 @@ import { recordDonation } from "@/lib/api";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { queueDonation, syncQueuedDonations } from "@/lib/offlineDonationQueue";
 import { formatXLM, formatCO2 } from "@/utils/format";
+import { safeRandomUUID } from "@/utils/uuid";
 import type { ClimateProject } from "@/utils/types";
 import type { DonorAsset, ConversionEstimate } from "@/lib/dex";
 
@@ -112,8 +116,14 @@ export default function DonateForm({
     };
   }, [publicKey, currency]);
 
+  const { errors, validate, clearField } = useFormValidation(donationSchema);
+
   const amountNum = parseFloat(amount);
-  const isValid = !isNaN(amountNum) && amountNum >= 1;
+  const isValid = donationSchema.safeParse({
+    amount,
+    message: message || undefined,
+    projectId: project.id,
+  }).success;
 
   // Calculate CO₂ impact for XLM donations
   const co2Impact =
@@ -149,12 +159,17 @@ export default function DonateForm({
   }, [isOnline]);
 
   const handleDonate = async () => {
-    if (!isValid || step !== "idle") return;
+    const isOk = validate({
+      amount,
+      message: message || undefined,
+      projectId: project.id,
+    });
+    if (!isOk || step !== "idle") return;
     setError(null);
 
-    // Generate once per user-initiated attempt so retries caused by network
-    // errors always send the same key and never create duplicate donations.
-    const idempotencyKey = crypto.randomUUID();
+    // Generate a unique idempotency key so the backend can safely deduplicate
+    // retried donation-recording requests within 24 hours.
+    const idempotencyKey = safeRandomUUID();
 
     if (!isOnline) {
       await queueDonation({
@@ -380,12 +395,15 @@ export default function DonateForm({
         </div>
         {/* Preset amounts */}
         <div>
-          <label className="label">Choose Amount ({currency})</label>
+          <span className="label block mb-2">Choose Amount ({selectedAsset ? selectedAsset.code : currency})</span>
           <div className="flex flex-wrap gap-2 mb-3">
             {(currency === "XLM" ? PRESETS_XLM : PRESETS_USDC).map((p) => (
               <button
                 key={p}
-                onClick={() => setAmount(p)}
+                onClick={() => {
+                  setAmount(p);
+                  clearField("amount");
+                }}
                 className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all font-body ${
                   amount === p
                     ? "btn-primary text-white border-0"
@@ -445,26 +463,27 @@ export default function DonateForm({
 
         {/* Message */}
         <div>
-          <label className="label">
-            Message{" "}
-            <span className="normal-case text-[#64748B] dark:text-[#94A3B8] font-normal">
-              (optional)
-            </span>
-          </label>
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Leave a message of support..."
-            maxLength={100}
-            className="input-field"
-          />
+          <FormField
+            name="message"
+            label="Message (optional)"
+            error={errors.message}
+            helper="Your message will appear in the public donation feed"
+          >
+            <input
+              type="text"
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                clearField("message");
+              }}
+              placeholder="Leave a message of support..."
+              maxLength={100}
+              className="input-field"
+            />
+          </FormField>
         </div>
 
-        {/*  Helper text */}
-        <p className="text-xs text-[#64748B] dark:text-[#94A3B8] mt-1">
-          Your message will appear in the public donation feed
-        </p>
+
 
         {/* Character counter */}
         <p className={`text-xs mt-1 ${getCounterColor()}`}>
