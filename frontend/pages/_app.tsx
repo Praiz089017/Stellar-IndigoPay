@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { AnimatePresence } from "framer-motion";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SkipToContent from "@/components/SkipToContent";
 import PageTransition from "@/components/PageTransition";
 import CookieConsent from "@/components/CookieConsent";
@@ -31,6 +32,20 @@ import "@/styles/globals.css";
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
+
+  // Create QueryClient once per session so cache survives page navigations.
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000, // 30s default
+            retry: 2,
+            refetchOnWindowFocus: true,
+          },
+        },
+      }),
+  );
 
   useEffect(() => {
     initAnalytics();
@@ -79,10 +94,11 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <I18nProvider>
-          <PriceProvider>
-            <WalletProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <I18nProvider>
+            <PriceProvider>
+              <WalletProvider>
               <Head>
                 <title>
                   Stellar-IndigoPay — Fund the planet. One XLM at a time.
@@ -115,10 +131,11 @@ export default function App({ Component, pageProps }: AppProps) {
               <CookieConsent />
               <InstallPrompt />
               <ThemeTiedToaster />
-            </WalletProvider>
-          </PriceProvider>
-        </I18nProvider>
-      </ThemeProvider>
+              </WalletProvider>
+            </PriceProvider>
+          </I18nProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }
