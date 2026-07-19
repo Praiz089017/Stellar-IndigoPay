@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -9,7 +9,7 @@ import { ThemeTiedToaster } from "@/components/ThemeTiedToaster";
 import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { PriceProvider } from "@/lib/priceContext";
-import { WalletProvider } from "@/lib/WalletProvider";
+import { WalletProvider, useWallet } from "@/lib/WalletProvider";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
@@ -17,18 +17,38 @@ import OfflineFallback from "@/components/OfflineFallback";
 import InstallPrompt from "@/components/InstallPrompt";
 import { syncQueuedDonations } from "@/lib/offlineDonationQueue";
 import { recordDonation } from "@/lib/api";
+import Navbar from "@/components/Navbar";
+import GlobalSearchModal from "@/components/GlobalSearchModal";
+import { useShortcuts } from "@/hooks/useShortcuts";
 import "@/styles/globals.css";
 
-// ThemeTiedToaster keeps the sonner toast palette in sync with the
-// resolved effective theme.
-// ErrorBoundary is the OUTERMOST provider so it can catch render-time
-// exceptions in any of the providers below it (Theme, I18n, Price,
-// Wallet) instead of leaving the user with a blank shell.
-// SkipToContent lives at the very top so it is the first focusable
-// element on the page (satisfies WCAG 2.4.1 Bypass Blocks).
-export default function App({ Component, pageProps }: AppProps) {
+function AppContent({ Component, pageProps }: { Component: any; pageProps: any }) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
+  const { publicKey, connect, disconnect } = useWallet();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useShortcuts([
+    { key: "k", meta: true, handler: () => setSearchOpen(true), description: "Open search" },
+    { key: "h", ctrl: true, handler: () => router.push("/"), description: "Go home" },
+    { key: "d", ctrl: true, handler: () => router.push("/dashboard"), description: "Dashboard" },
+  ]);
+
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setTimeout(() => {
+        const mainContent = document.getElementById("main-content");
+        if (mainContent) {
+          mainContent.focus();
+        } else {
+          document.querySelector("h1")?.focus();
+        }
+      }, 100);
+    };
+
+    router.events.on("routeChangeComplete", handleRouteChange);
+    return () => router.events.off("routeChangeComplete", handleRouteChange);
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
@@ -62,6 +82,34 @@ export default function App({ Component, pageProps }: AppProps) {
     };
   }, []);
 
+  const isWidget = router.pathname.startsWith("/widget");
+
+  return (
+    <>
+      <ConnectivityBanner isOnline={isOnline} />
+      {!isWidget && <SkipToContent />}
+      {!isWidget && (
+        <Navbar
+          publicKey={publicKey}
+          onConnect={connect}
+          onDisconnect={disconnect}
+        />
+      )}
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
+        <OfflineFallback isOnline={isOnline} />
+        <AnimatePresence mode="wait" initial={false}>
+          <PageTransition key={router.asPath}>
+            <Component {...pageProps} />
+          </PageTransition>
+        </AnimatePresence>
+      </main>
+      <InstallPrompt />
+      {searchOpen && <GlobalSearchModal onClose={() => setSearchOpen(false)} />}
+    </>
+  );
+}
+
+export default function App({ Component, pageProps }: AppProps) {
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -81,23 +129,7 @@ export default function App({ Component, pageProps }: AppProps) {
                   content="width=device-width, initial-scale=1"
                 />
               </Head>
-              <ConnectivityBanner isOnline={isOnline} />
-              <SkipToContent />
-              <main id="main-content" tabIndex={-1}>
-                <OfflineFallback isOnline={isOnline} />
-                {/* `initial={false}` prevents the entrance animation on the
-                    first SSR paint; `mode="wait"` lets the outgoing page
-                    finish exiting before the incoming one mounts, which keeps
-                    route changes smooth for both forward and back/forward
-                    navigations. Keying by `router.asPath` (including the
-                    query string) ensures dynamic routes animate too. */}
-                <AnimatePresence mode="wait" initial={false}>
-                  <PageTransition key={router.asPath}>
-                    <Component {...pageProps} />
-                  </PageTransition>
-                </AnimatePresence>
-              </main>
-              <InstallPrompt />
+              <AppContent Component={Component} pageProps={pageProps} />
               <ThemeTiedToaster />
             </WalletProvider>
           </PriceProvider>
