@@ -476,7 +476,7 @@ fn ensure_min_ttl(env: &Env, min_ledgers: u32) {
         .extend_ttl(min_ledgers, min_ledgers);
 }
 
-fn calculate_badge(total_stroops: i128) -> BadgeTier {
+pub fn calculate_badge(total_stroops: i128) -> BadgeTier {
     let xlm = total_stroops / STROOP;
     if xlm >= 2000 {
         BadgeTier::EarthGuardian
@@ -520,7 +520,7 @@ fn apply_campaign_goal_progress(project: &mut Project) -> bool {
     }
 }
 
-fn voting_weight_from_badge(badge: &BadgeTier) -> u32 {
+pub fn voting_weight_from_badge(badge: &BadgeTier) -> u32 {
     match badge {
         BadgeTier::None => 0,
         BadgeTier::Seedling => 100,
@@ -2174,7 +2174,6 @@ impl IndigoPayContract {
     }
 
     /// Get the configured USDC token address.
-    #[cfg(feature = "usdc")]
     #[cfg(feature = "usdc")]
     pub fn get_usdc_token(env: Env) -> Option<Address> {
         env.storage().instance().get(&DataKey::USDCTokenAddress)

@@ -40,13 +40,13 @@ jobs:
       - name: Run tests (skip duplicate fuzz run -- handled by dedicated fuzz job)
         run: "cargo test --features testutils --workspace -- --skip fuzz::"
 
-      - name: Build WASM
-        run: cargo build --workspace --target wasm32v1-none --release
+      - name: Build WASM (slim — no optional features)
+        run: cargo build --workspace --target wasm32v1-none --release --no-default-features
 
       - name: Check WASM size
         run: |
           size=$(stat -c%s target/wasm32v1-none/release/indigopay_contract.wasm)
-          echo "WASM size: $size bytes"
+          echo "WASM size (slim): $size bytes"
           if [ $size -gt 65536 ]; then
             echo "Error: WASM binary exceeds 64KB limit"
             exit 1
