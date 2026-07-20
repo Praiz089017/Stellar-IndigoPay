@@ -11,10 +11,11 @@ import { ThemeTiedToaster } from "@/components/ThemeTiedToaster";
 import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { PriceProvider } from "@/lib/priceContext";
-import { WalletProvider, useWallet } from "@/lib/WalletProvider";
+import { WalletProvider } from "@/lib/WalletProvider";
 import { ErrorBoundary } from "@/lib/ErrorBoundary";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import useShortcuts from "@/hooks/useShortcuts";
+import GlobalSearchModal from "@/components/GlobalSearchModal";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import OfflineFallback from "@/components/OfflineFallback";
 import InstallPrompt from "@/components/InstallPrompt";
@@ -24,10 +25,16 @@ import { initAnalytics, trackEvent } from "@/lib/analytics";
 import { inter, display } from "@/lib/fonts";
 import "@/styles/globals.css";
 
-function AppContent({ Component, pageProps }: { Component: any; pageProps: any }) {
+// ThemeTiedToaster keeps the sonner toast palette in sync with the
+// resolved effective theme.
+// ErrorBoundary is the OUTERMOST provider so it can catch render-time
+// exceptions in any of the providers below it (Theme, I18n, Price,
+// Wallet) instead of leaving the user with a blank shell.
+// SkipToContent lives at the very top so it is the first focusable
+// element on the page (satisfies WCAG 2.4.1 Bypass Blocks).
+export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const isOnline = useOnlineStatus();
-  const { publicKey, connect, disconnect } = useWallet();
   const [searchOpen, setSearchOpen] = useState(false);
 
   useShortcuts([
@@ -154,6 +161,7 @@ function AppContent({ Component, pageProps }: { Component: any; pageProps: any }
               <CookieConsent />
               <InstallPrompt />
               <ThemeTiedToaster />
+              {searchOpen && <GlobalSearchModal onClose={() => setSearchOpen(false)} />}
               </div>
               </WalletProvider>
             </PriceProvider>
