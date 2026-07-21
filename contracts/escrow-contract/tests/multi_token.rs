@@ -20,8 +20,7 @@ mod common;
 /// can claim milestones.
 fn jump_past_release_period(env: &Env) {
     let current = env.ledger().sequence();
-    env.ledger()
-        .set_sequence_number(current + 12); // RELEASE_AFTER_LEDGERS = 10
+    env.ledger().set_sequence_number(current + 12); // RELEASE_AFTER_LEDGERS = 10
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
