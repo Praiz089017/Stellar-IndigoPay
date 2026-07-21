@@ -34,6 +34,9 @@ use soroban_sdk::{
     Env, String, Symbol, Vec,
 };
 
+#[cfg(feature = "zk")]
+use soroban_sdk::Bytes;
+
 // ─── Oracle interface ─────────────────────────────────────────────────────────
 
 /// External price oracle interface.
@@ -360,6 +363,9 @@ pub enum DataKey {
     VoteDelegation(Address),
     DelegatedWeight(Address),
     NativeTokenAddress,
+    // zk-SNARK anonymous donation (#390)
+    ZkVerificationKey,
+    Nullifier(BytesN<32>),
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1481,6 +1487,290 @@ impl IndigoPayContract {
         );
         ensure_min_ttl(&env, VOTING_WINDOW_LEDGERS * 4);
         ensure_min_ttl(&env, VOTING_WINDOW_LEDGERS * 4);
+    }
+
+    // ─── zk-SNARK Anonymous Donations (#390) ─────────────────────────────────
+
+    /// Admin-only: set the Groth16 verification key for anonymous donations.
+    /// The verification key is a serialized Groth16 vk for the donation circuit.
+    /// Only one key may be active at a time; calling this again overwrites it.
+    #[cfg(feature = "zk")]
+    pub fn set_zk_verification_key(env: Env, admin: Address, vk: Bytes) {
+        require_admin_for_routine(&env, &admin);
+        require_not_paused(&env);
+        if vk.is_empty() {
+            panic!("Verification key must not be empty");
+        }
+        env.storage()
+            .instance()
+            .set(&DataKey::ZkVerificationKey, &vk);
+        env.events()
+            .publish((symbol_short!("zk_vk_set"), admin), vk.len() as u32);
+        ensure_min_ttl(&env, VOTING_WINDOW_LEDGERS * 4);
+    }
+
+    /// Query the current Groth16 verification key, if set.
+    #[cfg(feature = "zk")]
+    pub fn get_zk_verification_key(env: Env) -> Option<Bytes> {
+        env.storage().instance().get(&DataKey::ZkVerificationKey)
+    }
+
+    /// Anonymous donation via zk-SNARK proof verification.
+    ///
+    /// A donor generates a Groth16 proof off-chain proving they have sufficient
+    /// tokens and a valid project/amount/nullifier tuple. The contract verifies
+    /// the proof on-chain and records the donation under a derived anonymous
+    /// donor address (sha256 of the nullifier).
+    ///
+    /// # Prerequisites
+    /// - Admin must have set the verification key via `set_zk_verification_key`.
+    /// - The donor must transfer tokens to the contract address BEFORE calling
+    ///   this function (in the same atomic transaction) so the contract can
+    ///   forward them to the project wallet.
+    /// - Each nullifier must be globally unique across all anonymous donations.
+    ///
+    /// # Parameters
+    /// - `token`: The Stellar asset contract address for the donation currency.
+    /// - `proof`: The serialized Groth16 proof bytes.
+    /// - `project_id`: The project receiving the donation.
+    /// - `amount`: Donation amount in token's smallest unit (stroops).
+    /// - `nullifier`: Unique 32-byte value preventing double-spend of the proof.
+    /// - `msg_hash`: 4-byte message hash bound to the proof circuit.
+    ///
+    /// # Panics
+    /// - If the verification key has not been set.
+    /// - If the nullifier has already been used.
+    /// - If the Groth16 proof fails verification.
+    /// - If the project is not found, inactive, or paused.
+    /// - If the amount is not positive.
+    #[cfg(feature = "zk")]
+    #[allow(clippy::too_many_arguments)]
+    pub fn donate_anonymous(
+        env: Env,
+        token: Address,
+        proof: Bytes,
+        project_id: String,
+        amount: i128,
+        nullifier: BytesN<32>,
+        msg_hash: u32,
+    ) {
+        require_not_paused(&env);
+        if amount <= 0 {
+            panic!("Donation amount must be positive");
+        }
+
+        let nullifier_key = DataKey::Nullifier(nullifier.clone());
+        if env.storage().instance().has(&nullifier_key) {
+            panic!("Nullifier already spent");
+        }
+
+        // Load and verify the Groth16 proof against the admin-set vk.
+        let vk: Bytes = env
+            .storage()
+            .instance()
+            .get(&DataKey::ZkVerificationKey)
+            .expect("Verification key not set — admin must call set_zk_verification_key first");
+
+        // Construct public inputs: [amount (i128 LE), msg_hash (u32 LE),
+        // project_id hash, nullifier hash]. The circuit MUST match this layout.
+        // We pack them into a single Bytes blob for groth16_verify.
+        let project_id_hash = env.crypto().sha256(&project_id.clone().into());
+
+        let mut public_inputs = Bytes::new(&env);
+        public_inputs.append(&amount.to_be_bytes().as_slice().into());
+        public_inputs.append(&msg_hash.to_be_bytes().as_slice().into());
+        public_inputs.append(&project_id_hash.into());
+        public_inputs.append(&Bytes::from_slice(&env, nullifier.as_ref()));
+
+        if !env.crypto().groth16_verify(&vk, &proof, &public_inputs) {
+            panic!("Anonymous donation proof verification failed");
+        }
+
+        // Derive the anonymous donor address from the nullifier.
+        // Address::from_bytes takes raw bytes — we use sha256 of the nullifier
+        // to produce a deterministic 32-byte anonymous address.
+        let nullifier_hash = env
+            .crypto()
+            .sha256(&Bytes::from_slice(&env, nullifier.as_ref()));
+        let anon_donor = Address::from_bytes(&nullifier_hash.to_bytes().as_ref().into());
+
+        // ── Checks ───────────────────────────────────────────────────────────
+
+        let mut project: Project = env
+            .storage()
+            .instance()
+            .get(&DataKey::Project(project_id.clone()))
+            .expect("Project not found");
+        if !project.active {
+            panic!("Project is not accepting donations");
+        }
+        if project.paused {
+            panic!("Project is temporarily paused");
+        }
+        require_campaign_accepts_donation(&project, env.ledger().sequence());
+
+        // Pre-compute CO2 increment.
+        let xlm_units = amount / STROOP;
+        let co2_increment = xlm_units
+            .checked_mul(project.co2_per_xlm as i128)
+            .expect("CO2 calculation overflow");
+
+        let mut donor_stats: DonorStats = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonorStats(anon_donor.clone()))
+            .unwrap_or(DonorStats {
+                total_donated: 0,
+                donation_count: 0,
+                badge: BadgeTier::None,
+                co2_offset_grams: 0,
+            });
+        let prev_badge = donor_stats.badge.clone();
+
+        // ── Effects (Checks-Effects-Interactions) ────────────────────────────
+
+        // Mark nullifier as spent AFTER all checks pass, as part of the
+        // Effects step. Prevents griefing where a valid proof for a
+        // deactivated project permanently consumes the nullifier.
+        env.storage().instance().set(&nullifier_key, &true);
+
+        project.total_raised = project
+            .total_raised
+            .checked_add(amount)
+            .expect("Project total_raised overflow");
+        let goal_reached = apply_campaign_goal_progress(&mut project);
+        let donated_key = DataKey::HasDonated(project_id.clone(), anon_donor.clone());
+        if !env.storage().instance().has(&donated_key) {
+            env.storage().instance().set(&donated_key, &true);
+            project.donor_count = project
+                .donor_count
+                .checked_add(1)
+                .expect("Project donor_count overflow");
+        }
+        env.storage()
+            .instance()
+            .set(&DataKey::Project(project_id.clone()), &project);
+        if goal_reached {
+            env.events().publish(
+                (symbol_short!("camp_goal"), project_id.clone()),
+                project.total_raised,
+            );
+        }
+
+        donor_stats.total_donated = donor_stats
+            .total_donated
+            .checked_add(amount)
+            .expect("Donor total_donated overflow");
+        donor_stats.donation_count = donor_stats
+            .donation_count
+            .checked_add(1)
+            .expect("Donor donation_count overflow");
+        donor_stats.co2_offset_grams = donor_stats
+            .co2_offset_grams
+            .checked_add(co2_increment)
+            .expect("Donor co2_offset overflow");
+        donor_stats.badge = calculate_badge(donor_stats.total_donated);
+        #[cfg(feature = "delegation")]
+        update_delegated_weight_if_needed(&env, &anon_donor, &prev_badge, &donor_stats.badge);
+        env.storage()
+            .instance()
+            .set(&DataKey::DonorStats(anon_donor.clone()), &donor_stats);
+
+        // Track per-project cumulative donations for milestone NFT eligibility.
+        let proj_total_key = DataKey::DonorProjectTotal(project_id.clone(), anon_donor.clone());
+        let prev_proj_total: i128 = env.storage().instance().get(&proj_total_key).unwrap_or(0);
+        env.storage().instance().set(
+            &proj_total_key,
+            &prev_proj_total
+                .checked_add(amount)
+                .expect("DonorProjectTotal overflow"),
+        );
+
+        // Auto-mint an Impact NFT when the anonymous donor reaches a new badge tier.
+        if donor_stats.badge != BadgeTier::None && donor_stats.badge != prev_badge {
+            let nft_key = DataKey::ImpactNFT(anon_donor.clone(), donor_stats.badge.clone());
+            if !env.storage().instance().has(&nft_key) {
+                let nft = ImpactNFT {
+                    owner: anon_donor.clone(),
+                    tier: donor_stats.badge.clone(),
+                    total_donated: donor_stats.total_donated,
+                    minted_at_ledger: env.ledger().sequence(),
+                };
+                env.storage().instance().set(&nft_key, &nft);
+                env.events().publish(
+                    (symbol_short!("nft_mint"), anon_donor.clone()),
+                    donor_stats.badge.clone(),
+                );
+            }
+        }
+
+        let dc: u32 = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonationCount)
+            .unwrap_or(0);
+        let new_dc = dc.checked_add(1).expect("DonationCount overflow");
+        env.storage()
+            .instance()
+            .set(&DataKey::DonationCount, &new_dc);
+        // Store donation record under the anonymous donor address.
+        let donation_record = DonationRecord {
+            donor: anon_donor.clone(),
+            project: project_id.clone(),
+            amount,
+            ledger: env.ledger().sequence(),
+            message_hash: msg_hash,
+            currency: symbol_short!("XLM"),
+        };
+        env.storage()
+            .instance()
+            .set(&DataKey::DonationRecord(dc), &donation_record);
+        env.storage()
+            .instance()
+            .set(&DataKey::DonationCO2Offset(dc), &co2_increment);
+
+        let gr: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::GlobalTotalRaised)
+            .unwrap_or(0);
+        let new_gr = gr.checked_add(amount).expect("GlobalTotalRaised overflow");
+        env.storage()
+            .instance()
+            .set(&DataKey::GlobalTotalRaised, &new_gr);
+
+        let gc: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::GlobalCO2OffsetGrams)
+            .unwrap_or(0);
+        let new_gc = gc.checked_add(co2_increment).expect("GlobalCO2 overflow");
+        env.storage()
+            .instance()
+            .set(&DataKey::GlobalCO2OffsetGrams, &new_gc);
+
+        // ── Interaction: transfer tokens from contract to project wallet.
+        //    The donor must have transferred tokens to the contract in the same
+        //    atomic transaction (before this call) so the contract holds a
+        //    sufficient balance.
+        let token_client = token::Client::new(&env, &token);
+        token_client.transfer(&env.current_contract_address(), &project.wallet, &amount);
+
+        env.events().publish(
+            (
+                symbol_short!("anon_don"),
+                anon_donor.clone(),
+                project_id.clone(),
+            ),
+            (amount, donor_stats.badge.clone(), msg_hash),
+        );
+        ensure_min_ttl(&env, VOTING_WINDOW_LEDGERS * 4);
+    }
+
+    /// Check if a nullifier has already been spent.
+    #[cfg(feature = "zk")]
+    pub fn is_nullifier_spent(env: Env, nullifier: BytesN<32>) -> bool {
+        env.storage().instance().has(&DataKey::Nullifier(nullifier))
     }
 
     // ─── Getters ─────────────────────────────────────────────────────────────
@@ -6530,5 +6820,173 @@ mod tests {
             &50u32,
             &parent_id,
         );
+    }
+
+    // ─── zk-SNARK anonymous donation tests (#390) ────────────────────────────
+
+    #[cfg(feature = "zk")]
+    #[test]
+    fn test_anonymous_address_derivation_deterministic() {
+        let env = Env::default();
+        let nullifier = BytesN::from_array(&env, &[42u8; 32]);
+        let hash1 = env
+            .crypto()
+            .sha256(&Bytes::from_slice(&env, nullifier.as_ref()));
+        let addr1 = Address::from_bytes(&hash1.to_bytes().as_ref().into());
+        let hash2 = env
+            .crypto()
+            .sha256(&Bytes::from_slice(&env, nullifier.as_ref()));
+        let addr2 = Address::from_bytes(&hash2.to_bytes().as_ref().into());
+        assert_eq!(addr1, addr2);
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    fn test_anonymous_address_derivation_different_nullifiers() {
+        let env = Env::default();
+        let n1 = BytesN::from_array(&env, &[1u8; 32]);
+        let n2 = BytesN::from_array(&env, &[2u8; 32]);
+        let h1 = env.crypto().sha256(&Bytes::from_slice(&env, n1.as_ref()));
+        let a1 = Address::from_bytes(&h1.to_bytes().as_ref().into());
+        let h2 = env.crypto().sha256(&Bytes::from_slice(&env, n2.as_ref()));
+        let a2 = Address::from_bytes(&h2.to_bytes().as_ref().into());
+        assert_ne!(a1, a2);
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    #[should_panic(
+        expected = "Verification key not set — admin must call set_zk_verification_key first"
+    )]
+    fn test_anonymous_donation_no_verification_key() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let nullifier = BytesN::from_array(&env, &[5u8; 32]);
+        let token = env
+            .register_stellar_asset_contract_v2(Address::generate(&env))
+            .address();
+        let proof = Bytes::from_slice(&env, &[0u8; 256]);
+        let project_id = String::from_str(&env, "test");
+        client.donate_anonymous(
+            &token,
+            &proof,
+            &project_id,
+            &1_000_000i128,
+            &nullifier,
+            &1u32,
+        );
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    fn test_set_and_get_verification_key() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let vk = Bytes::from_slice(&env, &[0xAB; 128]);
+        client.set_zk_verification_key(&admin, &vk);
+        let stored = client.get_zk_verification_key();
+        assert!(stored.is_some());
+        assert_eq!(stored.unwrap(), vk);
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    fn test_anonymous_donation_nullifier_not_spent_on_proof_failure() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let project_id = String::from_str(&env, "test-proj");
+        let project_wallet = Address::generate(&env);
+        client.register_project(
+            &admin,
+            &project_id,
+            &String::from_str(&env, "Test Project"),
+            &project_wallet,
+            &50u32,
+        );
+        let vk = Bytes::from_slice(&env, &[1u8; 64]);
+        client.set_zk_verification_key(&admin, &vk);
+        let nullifier = BytesN::from_array(&env, &[7u8; 32]);
+        let token = env
+            .register_stellar_asset_contract_v2(Address::generate(&env))
+            .address();
+        let bad_proof = Bytes::from_slice(&env, &[0xFFu8; 256]);
+        let result = client.try_donate_anonymous(
+            &token,
+            &bad_proof,
+            &project_id,
+            &5_000_000i128,
+            &nullifier,
+            &1u32,
+        );
+        assert!(result.is_err());
+        assert!(!client.is_nullifier_spent(&nullifier));
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    #[should_panic(expected = "Donation amount must be positive")]
+    fn test_anonymous_donation_zero_amount() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let project_id = String::from_str(&env, "test-proj");
+        let project_wallet = Address::generate(&env);
+        client.register_project(
+            &admin,
+            &project_id,
+            &String::from_str(&env, "Test"),
+            &project_wallet,
+            &50u32,
+        );
+        let vk = Bytes::from_slice(&env, &[1u8; 64]);
+        client.set_zk_verification_key(&admin, &vk);
+        let nullifier = BytesN::from_array(&env, &[8u8; 32]);
+        let token = env
+            .register_stellar_asset_contract_v2(Address::generate(&env))
+            .address();
+        let proof = Bytes::from_slice(&env, &[0u8; 256]);
+        client.donate_anonymous(&token, &proof, &project_id, &0i128, &nullifier, &1u32);
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    fn test_is_nullifier_spent_returns_false_initially() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let nullifier = BytesN::from_array(&env, &[9u8; 32]);
+        assert!(!client.is_nullifier_spent(&nullifier));
+    }
+
+    #[cfg(feature = "zk")]
+    #[test]
+    #[should_panic(expected = "Verification key must not be empty")]
+    fn test_set_zk_verification_key_rejects_empty() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let id = env.register_contract(None, IndigoPayContract);
+        let client = IndigoPayContractClient::new(&env, &id);
+        let admin = Address::generate(&env);
+        client.initialize(&signers1(&env, &admin), &1u32);
+        let empty_vk = Bytes::new(&env);
+        client.set_zk_verification_key(&admin, &empty_vk);
     }
 }
