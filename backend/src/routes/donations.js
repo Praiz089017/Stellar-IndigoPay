@@ -370,7 +370,7 @@ router.get("/:id/receipt", async (req, res, next) => {
     );
     if (existing.rows[0]) {
       res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename=\"indigopay-receipt-${id}.pdf\"`);
+      res.setHeader("Content-Disposition", `attachment; filename="indigopay-receipt-${id}.pdf"`);
       return res.send(existing.rows[0].pdf);
     }
     const result = await pool.query(
@@ -394,7 +394,7 @@ router.get("/:id/receipt", async (req, res, next) => {
     );
     await pool.query("UPDATE donations SET receipt_generated_at = NOW() WHERE id = $1", [id]);
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=\"indigopay-receipt-${id}.pdf\"`);
+    res.setHeader("Content-Disposition", `attachment; filename="indigopay-receipt-${id}.pdf"`);
     return res.send(pdf);
   } catch (e) { return next(e); }
 });
